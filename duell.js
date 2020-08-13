@@ -7,7 +7,7 @@ const prefixe = [
   "!duell"
 ];
 const DEBUG = true;
-const timeTillTimeout = 30;
+const timeTillTimeout = 90;
 
 var eineAnfragenID = 0;
 var offeneAnfragen = [];
