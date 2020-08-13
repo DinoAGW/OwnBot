@@ -1,0 +1,175 @@
+const pwd = require('./Passwort.js');
+
+const tmi = require('tmi.js');
+const mariadb = require('mariadb');
+const pool = mariadb.createPool({
+     host: 'localhost', 
+     user:'chatsync', 
+     password: pwd.mariadb,
+     connectionLimit: 5
+});
+
+// Define configuration options
+const opts = {
+  identity: {
+    username: "chatsync",
+    password: pwd.chatsync
+  },
+  connection: {
+    reconnect: true
+  },
+  channels: [
+    "dinoagw"
+    //, "chilledgrizzlygaming"
+//    , "rhokassiopeia"
+    //, "lechtalnixe"
+    //, "wieheisstder"
+    //, "ladys_pleasure"
+//    , "redandblacker"
+    //, "hunkykay"
+    //, "heotthecasual"
+  ]
+};
+// Create a client with our options
+const client = new tmi.client(opts);
+
+// Register our event handlers (defined below)
+client.on('message', onMessageHandler);
+client.on('connected', onConnectedHandler);
+
+// Connect to Twitch:
+client.connect();
+
+
+// Called every time a message comes in
+function onMessageHandler (target, context, msg, self) {
+  if (self) { return; } // Ignore messages from the bot
+  
+  if (context.username == client.getUsername()) {
+	  console.log("kann wirklich passieren");
+	  return;
+  }
+
+  // Remove whitespace from chat message
+  const commandName = msg.trim();
+  
+  if (commandName.toLowerCase() == '!stopsync') {
+    var permission = false;
+    /*for (var chan in opts.channels) {
+      if (opts.channels[chan] == `#${context.username}`) {
+        permission = true;
+      }
+    }*/
+    if ("#"+context.username == target || context.mod) {
+      permission = true;
+    }
+    if (permission) {
+      var rundmail = "Synchronisation wurde beendet.";
+      //rundmail += " " + context.username + " " + target + " " + context.mod;
+      for (var chan in opts.channels) {
+        client.say(`${opts.channels[chan]}`, rundmail).then((data) => {console.log(`* data = ${data}`);}).catch((err)=>{console.log(`* err = ${err}`);});
+      }
+      client.disconnect();
+      return;
+    } else {
+      var rundmail = "Dies dürfen nur die Streamer/innen und deren Mods.";
+      //rundmail += " " + context.username + " " + target + " " + context.mod;
+      client.say(target, rundmail).then((data) => {console.log(`* data = ${data}`);}).catch((err)=>{console.log(`* err = ${err}`);});
+    }
+  }
+    
+  if (commandName.toLowerCase() == '!multi') {
+    try {
+      var rundmail2 = "Hier: https://multistre.am";
+      for (var chan in opts.channels) {
+        rundmail2 = rundmail2 + `/${opts.channels[chan].substring(1)}`;
+      }
+      rundmail2 = rundmail2 + " könnt Ihr uns gemeinsam schauen";
+      client.say(target, rundmail2).then((data) => {console.log(`* data = ${data}`);}).catch((err)=>{console.log(`* err = ${err}`);});
+    } catch(err) {
+      console.log(`* err = ${err}`);
+    }
+  }
+    
+  var cmd = '!ismod';
+  if (commandName.toLowerCase().startsWith(cmd+' ')) {
+    var arg = commandName.substring(cmd.length+1);
+    try {
+      client.mods(target).then((data) => {
+        console.log(`* data = ${data}`);
+        
+        var found = false;
+        for (var i = 0; i < data.length; i++) {
+          if (data[i] == arg) {
+            found = true;
+            break;
+          }
+        }
+        
+        if (found) {
+          client.say(target, "jup").then((data) => {console.log(`* data = ${data}`);}).catch((err)=>{console.log(`* err = ${err}`);});
+        } else {
+          client.say(target, "nö").then((data) => {console.log(`* data = ${data}`);}).catch((err)=>{console.log(`* err = ${err}`);});
+        }
+      }).catch((err)=>{console.log(`* err = ${err}`);});
+    } catch(err) {
+      console.log(`* err = ${err}`);
+    }
+  }
+   
+  /*if (commandName.toLowerCase().startsWith('!merke ')) {
+    try {
+      var rundmail2 = commandName.substring(10);
+      window.localStorage.setItem("test", rundmail2);
+      client.say(target, "'"  + rundmail2 + "' gemerkt").then((data) => {console.log(`* data = ${data}`);}).catch((err)=>{console.log(`* err = ${err}`);});
+    } catch(err) {
+      console.log(`* err = ${err}`);
+    }
+  }*/
+    
+  if ((commandName.charAt(0) !== '~')&&(commandName.charAt(0) !== '!')) {
+    for (var chan in opts.channels) {
+      //console.log(`${opts.channels[chan]}`);
+      //console.log(`[${context.username}]@${target}: ${commandName}`);
+      if ( `${opts.channels[chan]}` !== target ) {
+//        client.say(`${opts.channels[chan]}`, `${target} [ ${context.username} ]: ${commandName}`).then((data) => {console.log(`* data = ${data}`);}).catch((err)=>{console.log(`* err = ${err}`);});
+        client.say(`${opts.channels[chan]}`, `${context.username}: ${commandName}`).then((data) => {console.log(`* data = ${data}`);}).catch((err)=>{console.log(`* err = ${err}`);});
+      }
+    }
+  }
+}
+
+// Called every time the bot connects to Twitch chat
+async function onConnectedHandler (addr, port) {
+  try {
+    console.log(`* Connected to ${addr}:${port}`);
+    //console.log(client.readyState());
+    var rundmail = "Die folgenden Chats werden nun synchronisiert:";
+    for (var chan in opts.channels) {
+      if (chan>0) {
+        rundmail = rundmail + ",";
+      }
+      rundmail = rundmail + ` ${opts.channels[chan]}`;
+    }
+    rundmail = rundmail + ". Nachrichten die mit ~ beginnen werden nicht übermittelt. Schreibe !stopsync um die Synchronisierung zu beenden. Mit !multi kriegt Ihr einen Multistream Link.";
+    
+    for (var chan in opts.channels) {
+      var found = false;
+      // test
+      var data = await client.mods(`${opts.channels[chan]}`);
+      console.log(data);
+      for (var i = 0; i < data.length; i++) {
+        if (data[i] == client.getUsername()) {
+          found = true;
+          break;
+        }
+      }
+      if (!found) {
+        rundmail = rundmail + " Ich bitte nur noch um Modrechte, um korrekt zu funktionieren. ";
+      }
+      client.say(`${opts.channels[chan]}`, rundmail).then((data) => {console.log(`* data = ${data}`);}).catch((err)=>{console.log(`* err = ${err}`);});
+    }
+  } catch(err) {
+    console.log(`* err = ${err}`);
+  }
+}
