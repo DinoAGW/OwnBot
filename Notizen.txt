@@ -1,0 +1,16 @@
+Aus dem Gedächtnis:
+Projekt erst auf github erstellen
+Dann $ git clone git@github.com:YourUsername/your-app.git
+Dann die Dateien hinzufügen
+Dann $ git add * oder git add .
+Dann $ git commit -m "Text dazu"
+Dann $ git push
+$ git status
+$ git pull
+
+Allgemein:
+In der .gitignore schreiben was nicht hochgeladen werden soll
+$ git add .gitignore
+$ git config --global credential.helper store für Zugangsdaten merken
+$ git config --global user.name "King Kong"
+$ git config --global user.email "king-kong@gmail.com"
