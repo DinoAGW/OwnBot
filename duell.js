@@ -141,27 +141,30 @@ process.on('message', (message) => {
       process.exit();
     }
     if ( message.prefix == "!duell" ) {
+      if ( message.argument.startsWith("@") ) {
+        message.argument = message.argument.substring(1);
+      }
       let leerzeichenStelle = message.argument.indexOf(" ");
-      if ( leerzeichenStelle == -1 || !message.argument.startsWith("@") ) {
+      if ( leerzeichenStelle == -1 ) {
         process.send({
           type: konstanten.sendeAnChat,
           target: message.target,
           nachricht: "@" + message.username + " Der Befehl wird wie folgt genutzt: !duell @Zielperson Einsatz (Zielperson = Person mit der du dich duellieren möchtest, Einsatz = wieviel Punkte Du einsetzen möchtest.)"
         });
-      } else if ( message.argument.slice(1, leerzeichenStelle).toLowerCase()==message.username ) {
+      } else if ( message.argument.slice(0, leerzeichenStelle).toLowerCase()==message.username ) {
         process.send({
           type: konstanten.sendeAnChat,
           target: message.target,
           nachricht: "@" + message.username + " - versuchst Du Dich hier selbst fertig zu machen? =D"
         });
-      } else if ( message.argument.slice(1, leerzeichenStelle).toLowerCase()=="dinoagw_bot" ) {
+      } else if ( message.argument.slice(0, leerzeichenStelle).toLowerCase()=="dinoagw_bot" ) {
         process.send({
           type: konstanten.sendeAnChat,
           target: message.target,
           nachricht: "@" + message.username + " tut mir Leid, ich darf nicht (bin befangen) ='("
         });
       } else {
-        let ziel = message.argument.slice(1, leerzeichenStelle).toLowerCase();
+        let ziel = message.argument.slice(0, leerzeichenStelle).toLowerCase();
         let einsatz = message.argument.substring(leerzeichenStelle);
         leerzeichenStelle = einsatz.indexOf(" ");
         if ( leerzeichenStelle>0 ) {

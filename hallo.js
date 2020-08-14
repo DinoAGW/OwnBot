@@ -1,7 +1,9 @@
 const konstanten = require('./Konstanten.js');
 const prefixe = [
   "hallo",
-  "!hallo"
+  "!hallo",
+  "@dinoagw_bot",
+  "dinoagw_bot"
 ];
 const DEBUG = false;
 
@@ -62,21 +64,29 @@ process.on('message', (message) => {
       process.exit();
       //clearInterval(aktiv);
     }
-    if ( message.prefix == "hallo" ) {
-      if ( message.argument.toLowerCase().startsWith("@dinoagw_bot") ) {
-        let id = eineAnfragenID++;
-        let anfrage = {id: id, username: message.username, target: message.target };
-        process.send({
-          type: konstanten.datenbankAbfrage,
-          anfragenID: id,
-          query: "SELECT punkte, extrapoint FROM punkte WHERE name = ?",
-          variables: [ message.username ]
-        });
-        offeneAnfragen.push(anfrage);
-      }
+    if (
+      (
+        ( message.prefix == "hallo" ) && (
+          message.argument.toLowerCase().startsWith("@dinoagw_bot") || message.argument.toLowerCase().startsWith("dinoagw_bot") 
+        )
+      ) || (
+        ( message.argument.toLowerCase().startsWith("hallo") ) && (
+          message.prefix == "@dinoagw_bot" || message.prefix == "dinoagw_bot"
+        )
+      )
+    ) {
+      let id = eineAnfragenID++;
+      let anfrage = {id: id, username: message.username, target: message.target };
+      process.send({
+        type: konstanten.datenbankAbfrage,
+        anfragenID: id,
+        query: "SELECT punkte, extrapoint FROM punkte WHERE name = ?",
+        variables: [ message.username ]
+      });
+      offeneAnfragen.push(anfrage);
     }
     if ( message.prefix == "!hallo" ) {
-      if ( message.argument.toLowerCase().startsWith("@dinoagw_bot") ) {
+      if ( message.argument.toLowerCase().startsWith("@dinoagw_bot") || message.argument.toLowerCase().startsWith("dinoagw_bot") ) {
         process.send({
           type: konstanten.sendeAnChat,
           target: message.target,
