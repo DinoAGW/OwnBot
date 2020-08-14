@@ -3,6 +3,27 @@ Dies ist die Twitch Chatbot Kollektion,
 geschrieben von Alfred Wutschka,
 auch bekannt als DinoAGW auf Twitch: https://www.twitch.tv/dinoagw.
 
+# Installation
+(Aus dem Gedächtnis. Wer es ausprobiert, bitte präzisieren.)
+1) Projekt herunterladen
+2) Node.js installieren
+3) $ npm install tmi.js
+4) $ npm install mariadb
+Falls noch keine Datenbanksoftware vorhanden:
+5) $ apt install mariadb
+6) unter mariadb 'db1' Datenbank anlegen
+7) Datenbankbenutzer mit Passwort anlegen und Rechte für db1 vergeben (weiß ich nun nicht mehr so genau wie.)
+8) unter mariadb Tabellen aufsetzen:
+* $ CREATE TABLE merke (id INT NOT NULL AUTO_INCREMENT, text VARCHAR (100), PRIMARY KEY (id));
+* $ CREATE TABLE todo (id INT NOT NULL AUTO_INCREMENT, text VARCHAR (1000), status VARCHAR (100), PRIMARY KEY (id));
+* $ CREATE TABLE punkte (name VARCHAR (25) NOT NULL, punkte INT, extrapoint INT, einsatz INT DEFAULT 0, PRIMARY KEY (name));
+9) Passwort.js anlegen mit Inhalt:
+module.exports = {
+  <Name des Chatbots>: "oauth:<oauth key das Chatbots>",
+  mariadb: "Passwort des Datenbanknutzers"
+}
+10) mit "$ node dinoagw_bot.js" lässt sich der Bot dann starten
+
 # Funktionalitäten soweit
 ## chatsync
 Erster Bot zur Synchronisierung von Twitch Chats.
