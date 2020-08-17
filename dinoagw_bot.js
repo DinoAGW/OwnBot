@@ -34,6 +34,7 @@ const opts = {
   },
   channels: [
     "dinoagw"
+    , "apexfabinatorxy"
 //    , "smithhover"
   ]
 };

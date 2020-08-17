@@ -4,14 +4,16 @@ const myKonstanten = {
   updatefrage: 1,
 }
 const prefixe = [
+  "!rennen",
   "!duell"
 ];
-const DEBUG = true;
+const DEBUG = false;
 const timeTillTimeout = 90;
 
 var eineAnfragenID = 0;
 var offeneAnfragen = [];
 
+var eineDuellId = 0;
 var offeneDuelle = [];
 
 process.on('message', (message) => {
@@ -19,7 +21,7 @@ process.on('message', (message) => {
   if ( message.type == konstanten.erinnereMich ) {
     let gefunden = false;
     for ( iter in offeneDuelle ) {
-      if ( offeneDuelle[iter].username == message.duell.username && offeneDuelle[iter].target == message.duell.target && offeneDuelle[iter].ziel == message.duell.ziel && offeneDuelle[iter].einsatz == message.duell.einsatz ) {
+      if ( offeneDuelle[iter].id == message.duell.id ) {
         offeneDuelle.splice(iter, 1);
         gefunden = true;
         break;
@@ -71,18 +73,18 @@ process.on('message', (message) => {
           let random = Math.floor(Math.random()*einsaetze)
           let gewinner;
           let verlierer;
-          if (random < anfrage.einsatz) {
-            gewinner = anfrage;
-            verlierer = duell;
-          } else {
+          if (random < duell.einsatz) {
             gewinner = duell;
             verlierer = anfrage;
+          } else {
+            gewinner = anfrage;
+            verlierer = duell;
           }
           if ( DEBUG ) {
             console.log("Anfrage: ", anfrage);
             console.log("Duell: ", duell);
             console.log("Einsätze zusammen: ", einsaetze);
-            console.log("Zufallszahl: ", random, " random<anfrage?");
+            console.log("Zufallszahl: ", random, " random<duell?");
             console.log("Gewinner: ", gewinner.username);
             console.log("Verlierer: ", verlierer.username);
           }
@@ -99,11 +101,15 @@ process.on('message', (message) => {
           process.send({
             type: konstanten.sendeAnChat,
             target: anfrage.target,
-            nachricht: "Der Gewinner ist: @" + gewinner.username + ". Sorry @" + verlierer.username + "."
+            nachricht: "Es wurden " + einsaetze + " Dinos ins Rennen geschickt. Dino #1-" + duell.einsatz + " ist von " + duell.username + ", Dino #" + (duell.einsatz+1) + "-" + einsaetze + " ist von " + anfrage.username + ". Gewonnen hat das Dino mit der Nummer " + (random+1) + ". @" + gewinner.username + " gewinnt " + verlierer.einsatz + " Dinos. Sorry @" + verlierer.username + "." 
+            //nachricht: duell.username + " setzt " + duell.einsatz + " Dinoeier, " + anfrage.username + " setzt " + anfrage.einsatz + ". Aber befruchtet ist nur das Ei Nummer " + (random+1) + ". @" + gewinner.username + " gewinnt " + verlierer.einsatz + " Dinos. Sorry @" + verlierer.username + "." 
+            //nachricht: "Ergebnis im Kampf " + anfrage.einsatz + " gegen " + duell.einsatz + ": " + random + ". @" + gewinner.username + " gewinnt " + verlierer.einsatz + " Dinos. Sorry @" + verlierer.username + "."
           });
         } else {
           //duell merken
+          let id = eineDuellId++;
           let duell = {
+            id: id,
             username: anfrage.username,
             target: anfrage.target,
             ziel: anfrage.ziel,
