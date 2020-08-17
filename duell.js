@@ -4,7 +4,6 @@ const myKonstanten = {
   updatefrage: 1,
 }
 const prefixe = [
-  "!rennen",
   "!duell"
 ];
 const DEBUG = false;
@@ -35,7 +34,7 @@ process.on('message', (message) => {
       });
       process.send({
         type: konstanten.sendeAnChat,
-        target: message.target,
+        target: message.duell.target,
         nachricht: "@" + message.duell.username + ": timeout."
       });
     } else {
@@ -126,7 +125,6 @@ process.on('message', (message) => {
             time: timeTillTimeout,
             nachricht: {
               type: konstanten.erinnereMich,
-              target: anfrage.target,
               duell: duell
             }
           });

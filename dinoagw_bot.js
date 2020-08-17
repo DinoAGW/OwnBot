@@ -2,7 +2,8 @@ const admins = ["dinoagw"];
 const autostartProgramme = [
   "hallo",
   "punkte",
-  "duell"
+  "duell",
+  "rennen"
 ];
 const erlaubteProgramme = [
   
@@ -34,7 +35,8 @@ const opts = {
   },
   channels: [
     "dinoagw"
-    , "apexfabinatorxy"
+//    , "lechtalnixe"
+//    , "apexfabinatorxy"
 //    , "smithhover"
   ]
 };
