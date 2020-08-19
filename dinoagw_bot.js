@@ -36,7 +36,7 @@ const opts = {
   channels: [
     "dinoagw"
 //    , "lechtalnixe"
-//    , "apexfabinatorxy"
+    , "apexfabinatorxy"
 //    , "smithhover"
   ]
 };
