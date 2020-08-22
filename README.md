@@ -54,4 +54,4 @@ Je mehr man einsetzt, umso wahrscheinlicher gewinnt man.
 Usage: !duell @zielperson einsatz
 
 # P.S.
-Diese Readme wird sporadisch gepflegt. Wenn etwas nicht stimmt, bitte eine Flüsternachricht auf Twitch an DinoAGW oder in meinem Discord Server: https://discord.gg/m4c79XN
+Diese Readme wird sporadisch gepflegt. Wenn etwas nicht stimmt, bitte eine Flüsternachricht auf Twitch an DinoAGW, sonst findet ihr mich auch auf meinem Discord Server: https://discord.gg/m4c79XN
