@@ -26,11 +26,15 @@ module.exports = {
 10) mit "$ node dinoagw_bot.js" lässt sich der Bot dann starten
 
 # Funktionalitäten soweit
-## chatsync
-Erster Bot zur Synchronisierung von Twitch Chats.
 
 ## dinoagw_bot
 Hauptbot zum starten, stoppen, verwalten der Helper-skripte.
+
+## chatsync
+Helper-skript zur Verwaltung und Implementierung von Chaträumen
+
+Usage: !invite kanal, !stopallsync, !sync, !kick Kanal
+Wenn Verbunden: !multi, !stopsync
 
 ## hallo
 Helper-skript um den Nutzern beim ersten mal 100, bei jedem weiteren mal (ein mal am Tag möglich) weitere 10 "Dinos" zu verleihen.
