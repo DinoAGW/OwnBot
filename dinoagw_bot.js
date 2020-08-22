@@ -3,13 +3,16 @@ const autostartProgramme = [
   "hallo",
   "punkte",
   "duell",
-  "rennen"
+  "rennen",
+  "todo",
+  "chatsync"
 ];
 const erlaubteProgramme = [
   
 ].concat(autostartProgramme);
 
 const DEBUG = false;
+const scriptname = "dinoagw_bot:";
 
 const pwd = require('./Passwort.js');
 const konstanten = require('./Konstanten.js');
@@ -36,12 +39,13 @@ const opts = {
   channels: [
     "dinoagw"
 //    , "lechtalnixe"
-    , "apexfabinatorxy"
+//    , "apexfabinatorxy"
 //    , "smithhover"
   ]
 };
 var client = new tmi.client(opts);
 
+var eineID = 0;
 var kinder = [];
 var prefixe = [];
 //var child;
@@ -68,6 +72,7 @@ setInterval(() => {
   }
 }, 1000);
 
+var geheimModus = false;
 
 function onMessageHandler (target, context, msg, self) {
   if (self) { return; } // Ignore messages from the bot
@@ -109,14 +114,15 @@ function onMessageHandler (target, context, msg, self) {
 
   for (var iter2 in prefixe ) {
     if ( prefixe[iter2].prefixe.includes(prefix) ) {
-      prefixe[iter2].process.send({
+      prefixe[iter2].child.send({
         type: konstanten.befehl,
         prefix: prefix,
         argument: argument,
         target: target,
         username:  username,
         isSreamer: isStreamer,
-        isMod: isMod
+        isMod: isMod,
+        isAdmin: isAdmin
       });
     }
   }
@@ -137,10 +143,47 @@ function onMessageHandler (target, context, msg, self) {
     }
     
     if ( befehl == "starte:" && isAdmin ) {
+      for( iter in kinder ) {
+        if( argument == kinder[iter].program ) {
+          kinder[iter].send({
+            type: konstanten.befehl,
+            prefix: "!stop",
+            argument: argument
+          });
+          kinder.splice(iter, 1);
+          iter--;
+        }
+      }
+      for( iter in prefixe ) {
+        if( argument == prefixe[iter].child.program ) {
+          prefixe.splice(iter, 1);
+          iter--;
+        }
+      }
       if ( erlaubteProgramme.includes(argument) ) {
         erzeuge( argument );
       } else {
         sende(target, "Das darf ich nich starten.");
+      }
+    }
+
+    if ( befehl == "stoppe:" && isAdmin ) {
+      for( iter in kinder ) {
+        if( argument == kinder[iter].program ) {
+          kinder[iter].send({
+            type: konstanten.befehl,
+            prefix: "!stop",
+            argument: argument
+          });
+          kinder.splice(iter, 1);
+          iter--;
+        }
+      }
+      for( iter in prefixe ) {
+        if( argument == prefixe[iter].child.program ) {
+          prefixe.splice(iter, 1);
+          iter--;
+        }
       }
     }
     
@@ -159,8 +202,18 @@ function onMessageHandler (target, context, msg, self) {
           argument: argument
         });
       }
+      eineID = 0;
       kinder = [];
       prefixe = [];
+    }
+    
+    if ( befehl == "geheimmodus" && isAdmin ) {
+      geheimModus = !geheimModus;
+      if ( geheimModus ) {
+        sende( target, "Geheimmodus aktiviert." );
+      } else {
+        sende( target, "Geheimmodus deaktiviert." );
+      }
     }
   }
 }
@@ -179,7 +232,7 @@ function erzeuge(kind) {
     }
     if ( message.type == konstanten.anwesend ) {
       prefixe.push({
-        process: child,
+        child: child,
         prefixe: message.prefixe
       });
     }
@@ -228,25 +281,42 @@ function erzeuge(kind) {
     }
   });
   child.on('error', (err) => {
-    console.log("Kind gibt einen Fehler aus: " + err);
+    console.log(kind + " gibt einen Fehler aus: " + err);
+    for( iter in kinder ) {
+      if( child.id == kinder[iter].id ) {
+        kinder.splice(iter, 1);
+        iter--;
+      }
+    }
+    for( iter in prefixe ) {
+      if( child.id == prefixe[iter].child.id ) {
+        prefixe.splice(iter, 1);
+        iter--;
+      }
+    }
   });
+  let id = eineID++;
+  child.id = id;
+  child.program = kind;
   kinder.push(child);
 }
 
 function sende(target, nachricht) {
-  try {
-    client.say(target, nachricht)
-      .then(
-        (data) => {console.log(`* data = ${data}`);}
-      )
-      .catch(
-        (err) => {console.log(`* err = ${err}`);}
-      );
-  } catch(err) {
-    console.log(`* err = ${err}`);
+  if ( !target.startsWith("#") ) {
+    target = "#" + target;
   }
+  if ( geheimModus ) {
+    nachricht = "~" + nachricht;
+  }
+  client.say(target, nachricht)
+    .then(
+      (data) => {console.log(scriptname, `gesendet data = ${data}`);}
+    )
+    .catch(
+      (err) => {console.log(scriptname, `gesendet err = ${err}`);}
+    );
 }
 
 function onConnectedHandler (addr, port) {
-  console.log(`* Connected to ${addr}:${port}`);
+  console.log( scriptname, `Connected to ${addr}:${port}`);
 }

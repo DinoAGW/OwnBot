@@ -102,7 +102,3 @@ process.send({
   type: konstanten.anwesend,
   prefixe: prefixe
 });
-
-/*var aktiv = setInterval(() => {
-  
-}, 1000)*/

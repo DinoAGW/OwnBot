@@ -4,7 +4,7 @@ const myKonstanten = {
 const prefixe = [
   "!rennen"
 ];
-const DEBUG = true;
+const DEBUG = false;
 const timeTillTimeout = 120;
 
 var eineAnfragenID = 0;
@@ -168,13 +168,13 @@ process.on('message', (message) => {
           target: message.target,
           einsatz: einsatz
         };
+        offeneAnfragen.push(anfrage);
         process.send({
           type: konstanten.datenbankAbfrage,
           anfragenID: id,
           query: "UPDATE punkte SET punkte=punkte-"+einsatz+",einsatz=einsatz+"+einsatz+"  WHERE name=? AND punkte>="+einsatz,
           variables: [ message.username ]
         });
-        offeneAnfragen.push(anfrage);
       }
     }
   }

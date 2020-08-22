@@ -17,6 +17,7 @@ Falls noch keine Datenbanksoftware vorhanden:
 * $ CREATE TABLE merke (id INT NOT NULL AUTO_INCREMENT, text VARCHAR (100), PRIMARY KEY (id));
 * $ CREATE TABLE todo (id INT NOT NULL AUTO_INCREMENT, text VARCHAR (1000), status VARCHAR (100), PRIMARY KEY (id));
 * $ CREATE TABLE punkte (name VARCHAR (25) NOT NULL, punkte INT, extrapoint INT, einsatz INT DEFAULT 0, PRIMARY KEY (name));
+* $ CREATE TABLE sync (kanal VARCHAR (25) NOT NULL, raum INT DEFAULT 0, PRIMARY KEY (kanal));
 9) Passwort.js anlegen mit Inhalt:
 module.exports = {
   <Name des Chatbots>: "oauth:<oauth key das Chatbots>",
