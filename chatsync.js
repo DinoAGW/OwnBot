@@ -269,6 +269,7 @@ function onMessageHandler (target, context, msg, self) {
     geheim = true;
     nachricht = nachricht.substring(1);
   }
+  if (context.username == "dinoagw_bot") geheim = true;
   var argument;
   var endeDesBefehls = nachricht.indexOf(" ");
   var prefix;
