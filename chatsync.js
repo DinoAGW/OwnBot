@@ -7,7 +7,8 @@ const prefixe = [
   "!invite",
   "!stopallsync",
   "!sync",
-  "!kick"
+  "!kick",
+  "!syncstatus"
 ];
 
 const DEBUG = false;
@@ -93,10 +94,16 @@ process.on('message', (message) => {
         let leerzeichenStelle = message.argument.indexOf(" ");
         if ( leerzeichenStelle == -1 ) {
           kanal = message.argument;
-          raum = 1;
+          raum = chatRaum[message.target.substring(1)];
         } else {
           kanal = message.argument.substring(0, leerzeichenStelle);
           raum = parseInt(message.argument.substring(leerzeichenStelle+1), 10);
+        }
+        if ( kanal.startsWith("@") ) {
+          kanal = kanal.substring(1);
+        }
+        if ( !message.isAdmin ) {
+          raum = chatRaum[message.target.substring(1)];
         }
         if ( isNaN(raum) || raum<1 ) {
           process.send({
@@ -147,7 +154,7 @@ process.on('message', (message) => {
       }
     }
     if ( message.prefix == "!stopallsync" ) {
-      if ( message.isAdmin || message.isStreamer || message.isMod ) {
+      if ( message.isAdmin ) {
         warteRaum = [];
         for ( let iter in chatRaum ) {
           process.send({
@@ -173,9 +180,18 @@ process.on('message', (message) => {
     }
     if ( message.prefix == "!sync" ) {
       if ( message.isAdmin || message.isStreamer || message.isMod ) {
+        let raum;
+        if ( message.isAdmin && message.argument != "" ) {
+          raum = parseInt(message.argument, 10);
+        } else {
+          raum = 0;
+          for ( iter in chatRaum ) {
+            if ( chatRaum[iter] >= raum ) {
+              raum = chatRaum[iter]+1;
+            }
+          }
+        }
         //verbinde mit Raum #
-        let raum = parseInt(message.argument, 10);
-        if ( message.argument == "" ) raum = 1;
         if ( isNaN(raum) || raum<1 ) {
           process.send({
             type: konstanten.sendeAnChat,
@@ -215,7 +231,7 @@ process.on('message', (message) => {
           kanal = message.argument.substring(0, leerzeichenStelle);
         }
         let raum = chatRaum[kanal];
-        if ( raum != undefined ) {
+        if ( raum != undefined && ( message.isAdmin || chatRaum[message.target.substring(1)] == raum )) {
           delete chatRaum[kanal];
           process.send({
             type: konstanten.sendeAnChat,
@@ -238,6 +254,40 @@ process.on('message', (message) => {
             type: konstanten.sendeAnChat,
             target: message.target,
             nachricht: "@" + message.username + " " + kanal + " ist in keinem Chatraum."
+          });
+        }
+      } else {
+        process.send({
+          type: konstanten.sendeAnChat,
+          target: message.target,
+          nachricht: "@" + message.username + " Du bist nicht dazu autorisiert diesen Befehl zu nutzen."
+        });
+      }
+    }
+    if ( message.prefix == "!syncstatus" ) {
+      if ( message.isAdmin ) {
+        let leer = true;
+        for ( iter in warteRaum ) {
+          leer = false;
+          process.send({
+            type: konstanten.sendeAnChat,
+            target: message.target,
+            nachricht: "@" + message.username + " " + iter + " wartet im Warteraum #" + warteRaum[iter]
+          });
+        }
+        for ( iter in chatRaum ) {
+          leer = false;
+          process.send({
+            type: konstanten.sendeAnChat,
+            target: message.target,
+            nachricht: "@" + message.username + " " + iter + " sitzt im Chatraum #" + chatRaum[iter]
+          });
+        }
+        if ( leer ) {
+          process.send({
+            type: konstanten.sendeAnChat,
+            target: message.target,
+            nachricht: "@" + message.username + " Die Warte- und Chaträume sind alle leer."
           });
         }
       } else {

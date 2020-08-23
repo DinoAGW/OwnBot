@@ -15,7 +15,7 @@ Falls noch keine Datenbanksoftware vorhanden:
 7) Datenbankbenutzer mit Passwort anlegen und Rechte für db1 vergeben (weiß ich nun nicht mehr so genau wie.)
 8) unter mariadb Tabellen aufsetzen:
 * $ CREATE TABLE merke (id INT NOT NULL AUTO_INCREMENT, text VARCHAR (100), PRIMARY KEY (id));
-* $ CREATE TABLE todo (id INT NOT NULL AUTO_INCREMENT, text VARCHAR (1000), status VARCHAR (100), PRIMARY KEY (id));
+* $ CREATE TABLE todo (id INT NOT NULL AUTO_INCREMENT, kanal VARCHAR (25), user VARCHAR (25), text VARCHAR (1000), status VARCHAR (100), PRIMARY KEY (id));
 * $ CREATE TABLE punkte (name VARCHAR (25) NOT NULL, punkte INT, extrapoint INT, einsatz INT DEFAULT 0, PRIMARY KEY (name));
 * $ CREATE TABLE sync (kanal VARCHAR (25) NOT NULL, raum INT DEFAULT 0, PRIMARY KEY (kanal));
 9) Passwort.js anlegen mit Inhalt:
@@ -31,7 +31,8 @@ module.exports = {
 Hauptbot zum starten, stoppen, verwalten der Helper-skripte.
 
 ## chatsync
-Helper-skript zur Verwaltung und Implementierung von Chaträumen
+Helper-skript zur Verwaltung und Implementierung von Chaträumen.
+Mittels !multi kann man sich einen Multristre.am Link aller Teilnehmer ausgeben lassen.
 
 Usage: !invite kanal, !stopallsync, !sync, !kick Kanal
 Wenn Verbunden: !multi, !stopsync
@@ -52,6 +53,13 @@ Der Verlierer verliert seinen Einsatz an den Gewinner.
 Je mehr man einsetzt, umso wahrscheinlicher gewinnt man.
 
 Usage: !duell @zielperson einsatz
+
+## rennen
+Helper-skript um mit einigen Spielern gemeinsam ein Rennen zu veranstalten.
+Widerrum gilt: je höher der Einsatz umso höher die Chancen.
+Der Gewinner kriegt die Einsätze von allen Anderen.
+
+Usage: !rennen einsatz
 
 # P.S.
 Diese Readme wird sporadisch gepflegt. Wenn etwas nicht stimmt, bitte eine Flüsternachricht auf Twitch an DinoAGW, sonst findet ihr mich auch auf meinem Discord Server: https://discord.gg/m4c79XN

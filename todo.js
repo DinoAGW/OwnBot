@@ -18,8 +18,8 @@ process.on('message', (message) => {
       if ( message.isAdmin || message.isStreamer || message.isMod ) {
         process.send({
           type: konstanten.datenbankEingabe,
-          query: "INSERT INTO todo ( text, status ) VALUE ( ?, 'open')",
-          variables: [ message.argument ]
+          query: "INSERT INTO todo ( kanal, user, text, status ) VALUE ( ?, ?, ?, 'open')",
+          variables: [ message.target.substring(1), message.username, message.argument ]
         });
         process.send({
           type: konstanten.sendeAnChat,
