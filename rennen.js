@@ -35,7 +35,7 @@ process.on('message', (message) => {
       let nummer = 0;
       let nachricht = "";
       for (iter in offeneRennen) {
-        nachricht += "Dino #" + (++nummer) + "-" + (nummer+=offeneRennen[iter].einsatz-1) + " gehören " + offeneRennen[iter].username
+        nachricht += "Dino #" + (++nummer) + "-" + (nummer+=offeneRennen[iter].einsatz-1) + " sind von " + offeneRennen[iter].username
         if ( iter < offeneRennen.length-1 ) {
           nachricht += ", ";
         } else {

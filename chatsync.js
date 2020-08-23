@@ -448,7 +448,7 @@ function sende(target, nachricht) {
   try {
     client.say(target, nachricht)
       .then(
-        (data) => {console.log(scriptname, `gesendet data = ${data}`);}
+        (data) => {if ( DEBUG ) console.log(scriptname, `gesendet data = ${data}`);}
       )
       .catch(
         (err) => {console.log(scriptname, `gesendet err = ${err}`);}
