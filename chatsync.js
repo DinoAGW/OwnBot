@@ -1,9 +1,10 @@
 const admins = ["dinoagw"];
+const DEBUG = false;
+
 const pwd = require('./Passwort.js');
-const tmi = require('tmi.js');
 
 const konstanten = require('./Konstanten.js');
-const prefixe = [
+const myPrefixe = [
   "!invite",
   "!stopallsync",
   "!sync",
@@ -11,24 +12,9 @@ const prefixe = [
   "!syncstatus"
 ];
 
-const DEBUG = false;
 const scriptname = "chatsync:";
 
-const opts = {
-  identity: {
-    username: "chatsync",
-    password: pwd.chatsync
-  },
-  connection: {
-    reconnect: true
-  },
-  channels: [
-  ]
-};
-var client = new tmi.client(opts);
-client.on('message', onMessageHandler);
-client.on('connected', onConnectedHandler);
-client.connect();
+const fork = require('child_process').fork;
 
 const timeTillTimeout = 30;
 
@@ -37,6 +23,195 @@ var offeneAnfragen = [];
 
 var warteRaum = [];
 var chatRaum = [];
+
+var kinder = {};
+var prefixe = {};
+
+erzeuge( "twitchChat" );
+kinder["twitchChat"].send({
+  type: konstanten.starteTwitchChat,
+  username: "chatsync",
+  password: pwd.chatsync,
+  channels: []
+});
+
+function empfange (target, context, msg) {
+  var nachricht = msg.trim();
+  var geheim = false;
+  if ( nachricht.startsWith("~") ) {
+    geheim = true;
+    nachricht = nachricht.substring(1);
+  }
+  if ( nachricht.startsWith("!") ) geheim = true;
+  if ( context.username == "dinoagw_bot" ) geheim = true;
+  var argument;
+  var endeDesBefehls = nachricht.indexOf(" ");
+  var prefix;
+  if( endeDesBefehls == -1 ) {
+    prefix = nachricht.toLowerCase();
+    argument = "";
+  } else {
+    prefix = nachricht.slice(0, endeDesBefehls).toLowerCase();
+    argument = nachricht.substring(prefix.length + 1);
+  }
+  var username = context.username;
+  var isStreamer = false;
+  if ( username == target ) {
+    isStreamer = true;
+  }
+  var isMod = context.mod;
+  var isAdmin = admins.includes(username);
+
+  if ( prefix == "!stopsync" ) {
+    if ( isAdmin || isStreamer || isMod ) {
+      let kanal = target;
+      let raum = chatRaum[kanal];
+      if ( raum != undefined ) {
+        delete chatRaum[kanal];
+        process.send({
+          type: konstanten.sendeAnChat,
+          target: target,
+          nachricht: "@" + username + " Der Kanal verlässt nun den Chatraum #" + raum
+        });
+        part( target );
+        process.send({
+          type: konstanten.datenbankEingabe,
+          query: "UPDATE sync SET raum = 0 WHERE kanal = ?",
+          variables: [ kanal ]
+        });
+      }
+    }
+  }
+  if ( prefix == "!multi" ) {
+    let raum = chatRaum[target];
+    if ( raum != undefined ) {
+      let rundmail = "Hier: https://multistre.am";
+      for( iter in chatRaum ) {
+        if ( chatRaum[iter] == raum ) {
+          rundmail += "/" + iter;
+        }
+      }
+      rundmail += " könnt Ihr uns gemeinsam schauen";
+      process.send({
+        type: konstanten.sendeAnChat,
+        target: target,
+        nachricht: rundmail
+      });
+    };
+  }
+  if ( prefix == "@dinoagw_bot" ) {
+    if ( isAdmin || isStreamer || isMod ) {
+      if ( argument.startsWith("ja") ) {
+        let kanal = target;
+        let raum = warteRaum[kanal];
+        if ( raum != undefined ) {
+          delete warteRaum[kanal];
+          chatRaum[kanal] = raum;
+          process.send({
+            type: konstanten.sendeAnChat,
+            target: target,
+            nachricht: "@" + username + " Ihr Kanal betritt nun Chatraum #" + raum
+          });
+          process.send({
+            type: konstanten.datenbankEingabe,
+            query: "REPLACE INTO sync (kanal, raum) VALUES (?, ?)",
+            variables: [ kanal, raum ]
+          });
+        }
+      }
+    } else {
+      process.send({
+        type: konstanten.sendeAnChat,
+        target: target,
+        nachricht: "@" + username + " Du bist nicht dazu autorisiert diesen Befehl zu nutzen."
+      });
+    }
+  }
+  //die eigentliche Funktionalität
+  let kanal = target;
+  if ( !geheim && chatRaum[kanal]>0 ) {
+    let raum = chatRaum[kanal];
+    for ( iter in chatRaum ) {
+      if ( iter != kanal && chatRaum[iter] == raum ) {
+        sende( iter, username + ": " + nachricht.substring(0, 255) );
+      }
+    }
+  }
+}
+
+function erzeuge(kind) {
+  var program = `${__dirname}/${kind}.js`;
+  var parameters = [];
+  var options = {
+    stdio: [ 'inherit', 'inherit', 'inherit', 'ipc' ]
+  };
+  var child = fork(program, parameters, options);
+  child.on('message', async (message) => {
+    if ( DEBUG ) console.log("Kind schreibt: ", message);
+    if ( message.type == konstanten.sendeAnChat ) {
+      sende(message.target, message.nachricht);
+    }
+    if ( message.type == konstanten.anwesend ) {
+      prefixe[kind] = {
+        child: child,
+        prefixe: message.prefixe
+      };
+    }
+    if ( message.type == konstanten.datenbankEingabe ) {
+      let conn;
+      let res;
+      try {
+        conn = await pool.getConnection();
+        if ( DEBUG ) console.log("Datenbankeingabe: ", message.query, message.variables);
+        res = await conn.query(message.query, message.variables);
+        if ( DEBUG ) console.log("Datenbankeingabe ergab: ", res);
+      } catch (err) {
+        console.log("Datenbankanfrage fehlgeschlagen: ", message.query, " " , message.variables);
+        throw err;
+      } finally {
+        if (conn) return conn.end();
+      }
+    }
+    if ( message.type == konstanten.datenbankAbfrage ) {
+      let conn;
+      let res;
+      if ( DEBUG ) console.log("Datenbankabfrage: ", message.query, message.variables);
+      try {
+        conn = await pool.getConnection();
+        res = await conn.query(message.query, message.variables);
+        if ( DEBUG ) console.log("Datenbankabfrage ergab: ", res);
+        child.send({
+          type: konstanten.datenbankAntwort,
+          anfragenID: message.anfragenID,
+          res: res
+        });
+      } catch (err) {
+        console.log("Datenbankanfrage fehlgeschlagen: ", message.query, " " , message.variables);
+        throw err;
+      } finally {
+        if (conn) return conn.end();
+      }
+    }
+    if ( message.type == konstanten.erinnereMich ) {
+      let anfrage = {
+        time: time+message.time,
+        child: child,
+        nachricht: message.nachricht
+      }
+      anfragen.push(anfrage);
+    }
+    if ( message.type == konstanten.empfangeVonTwitchChat ) {
+      empfange( message.target, message.context, message.msg );
+    }
+  });
+  child.on('error', (err) => {
+    console.log(kind + " gibt einen Fehler aus: " + err);
+    delete kinder[kind];
+    delete prefixe[kind];
+  });
+  kinder[kind] = child;
+  return child;
+}
 
 process.on('message', (message) => {
   if ( DEBUG ) console.log( scriptname, "Message:", message );
@@ -49,7 +224,7 @@ process.on('message', (message) => {
         target: message.kanal,
         nachricht: "timeout"
       });
-      part( client, message.kanal );
+      part( message.kanal );
       process.send({
         type: konstanten.sendeAnChat,
         target: message.target,
@@ -76,7 +251,7 @@ process.on('message', (message) => {
         if ( message.res[iter].raum>0 )
         {
           chatRaum[message.res[iter].kanal] = message.res[iter].raum;
-          join(client, message.res[iter].kanal);
+          join( message.res[iter].kanal );
         }
       }
     }
@@ -94,7 +269,7 @@ process.on('message', (message) => {
         let leerzeichenStelle = message.argument.indexOf(" ");
         if ( leerzeichenStelle == -1 ) {
           kanal = message.argument;
-          raum = chatRaum[message.target.substring(1)];
+          raum = chatRaum[message.target];
         } else {
           kanal = message.argument.substring(0, leerzeichenStelle);
           raum = parseInt(message.argument.substring(leerzeichenStelle+1), 10);
@@ -103,7 +278,7 @@ process.on('message', (message) => {
           kanal = kanal.substring(1);
         }
         if ( !message.isAdmin ) {
-          raum = chatRaum[message.target.substring(1)];
+          raum = chatRaum[message.target];
         }
         if ( isNaN(raum) || raum<1 ) {
           process.send({
@@ -120,7 +295,7 @@ process.on('message', (message) => {
           });
           } else {
             //Zum Raum einladen
-            join(client, kanal);
+            join( kanal );
             process.send({
               type: konstanten.sendeAnChat,
               target: kanal,
@@ -162,7 +337,7 @@ process.on('message', (message) => {
             target: iter,
             nachricht: message.username + " hat die Synchronisation für alle beendet."
           });
-          part( client, iter );
+          part( iter );
         }
         chatRaum = [];
         process.send({
@@ -184,8 +359,8 @@ process.on('message', (message) => {
         if ( message.isAdmin && message.argument != "" ) {
           raum = parseInt(message.argument, 10);
         } else {
-          raum = 0;
-          for ( iter in chatRaum ) {
+          raum = 1;
+          for ( let iter in chatRaum ) {
             if ( chatRaum[iter] >= raum ) {
               raum = chatRaum[iter]+1;
             }
@@ -199,8 +374,8 @@ process.on('message', (message) => {
             nachricht: "@" + message.username + " Der Befehl wird wie folgt genutzt: !sync Raum"
           });
         } else {
-          chatRaum[message.target.substring(1)] = raum;
-          join(client, message.target);
+          chatRaum[message.target] = raum;
+          join( message.target );
           process.send({
             type: konstanten.sendeAnChat,
             target: message.target,
@@ -209,7 +384,7 @@ process.on('message', (message) => {
           process.send({
             type: konstanten.datenbankEingabe,
             query: "REPLACE INTO sync (kanal, raum) VALUES (?, ?)",
-            variables: [ message.target.substring(1), raum ]
+            variables: [ message.target, raum ]
           });
         }
       } else {
@@ -231,14 +406,14 @@ process.on('message', (message) => {
           kanal = message.argument.substring(0, leerzeichenStelle);
         }
         let raum = chatRaum[kanal];
-        if ( raum != undefined && ( message.isAdmin || chatRaum[message.target.substring(1)] == raum )) {
+        if ( raum != undefined && ( message.isAdmin || chatRaum[message.target] == raum )) {
           delete chatRaum[kanal];
           process.send({
             type: konstanten.sendeAnChat,
             target: kanal,
             nachricht: "Ihr Kanal wurde aus dem Chatraum #" + raum + " entfernt."
           });
-          part( client, message.target );
+          part( message.target );
           process.send({
             type: konstanten.sendeAnChat,
             target: message.target,
@@ -303,171 +478,39 @@ process.on('message', (message) => {
 
 process.send({
   type: konstanten.anwesend,
-  prefixe: prefixe
+  prefixe: myPrefixe
 });
-
-function onMessageHandler (target, context, msg, self) {
-  if (self) { return; } // Ignore messages from the bot
-  
-  if (context.username == client.getUsername()) {
-	  console.log( scriptname, "kann wirklich passieren");
-	  return;
-  }
-  var nachricht = msg.trim();
-  var geheim = false;
-  if ( nachricht.startsWith("~") || nachricht.startsWith("!") ) {
-    geheim = true;
-    nachricht = nachricht.substring(1);
-  }
-  if (context.username == "dinoagw_bot") geheim = true;
-  var argument;
-  var endeDesBefehls = nachricht.indexOf(" ");
-  var prefix;
-  if( endeDesBefehls == -1 ) {
-    prefix = nachricht.toLowerCase();
-    argument = "";
-  } else {
-    prefix = nachricht.slice(0, endeDesBefehls).toLowerCase();
-    argument = nachricht.substring(prefix.length + 1);
-  }
-  var username = context.username;
-  var isStreamer = false;
-  if ( "#" + username == target ) {
-    isStreamer = true;
-  }
-  var isMod = context.mod;
-  var isAdmin = admins.includes(username);
-
-  if ( prefix == "!stopsync" ) {
-    if ( isAdmin || isStreamer || isMod ) {
-      let kanal = target.substring(1);
-      let raum = chatRaum[kanal];
-      if ( raum != undefined ) {
-        delete chatRaum[kanal];
-        process.send({
-          type: konstanten.sendeAnChat,
-          target: target,
-          nachricht: "@" + username + " Der Kanal verlässt nun den Chatraum #" + raum
-        });
-        part( client, target );
-        process.send({
-          type: konstanten.datenbankEingabe,
-          query: "UPDATE sync SET raum = 0 WHERE kanal = ?",
-          variables: [ kanal ]
-        });
-      }
-    }
-  }
-  if ( prefix == "!multi" ) {
-    let raum = chatRaum[target.substring(1)];
-    if ( raum != undefined ) {
-      let rundmail = "Hier: https://multistre.am";
-      for( iter in chatRaum ) {
-        if ( chatRaum[iter] == raum ) {
-          rundmail += "/" + iter;
-        }
-      }
-      rundmail += " könnt Ihr uns gemeinsam schauen";
-      process.send({
-        type: konstanten.sendeAnChat,
-        target: target,
-        nachricht: rundmail
-      });
-    };
-  }
-  if ( prefix == "@dinoagw_bot" ) {
-    if ( isAdmin || isStreamer || isMod ) {
-      if ( argument.startsWith("ja") ) {
-        let kanal = target.substring(1)
-        let raum = warteRaum[kanal];
-        if ( raum != undefined ) {
-          delete warteRaum[kanal];
-          chatRaum[kanal] = raum;
-          process.send({
-            type: konstanten.sendeAnChat,
-            target: target,
-            nachricht: "@" + username + " Ihr Kanal betritt nun Chatraum #" + raum
-          });
-          process.send({
-            type: konstanten.datenbankEingabe,
-            query: "REPLACE INTO sync (kanal, raum) VALUES (?, ?)",
-            variables: [ kanal, raum ]
-          });
-        }
-      }
-    } else {
-      process.send({
-        type: konstanten.sendeAnChat,
-        target: target,
-        nachricht: "@" + username + " Du bist nicht dazu autorisiert diesen Befehl zu nutzen."
-      });
-    }
-  }
-  //die eigentliche Funktionalität
-  let kanal = target.substring(1);
-  if ( !geheim && chatRaum[kanal]>0 ) {
-    let raum = chatRaum[kanal];
-    for ( iter in chatRaum ) {
-      if ( iter != kanal && chatRaum[iter] == raum ) {
-        sende( iter, username + ": " + nachricht.substring(0, 255) );
-      }
-    }
-  }
-}
-
-function join(client, kanal) {
-  if ( !kanal.startsWith("#") ) {
-    kanal = "#" + kanal;
-  }
-  client.join( kanal )
-  .then(
-    (data) => {console.log(scriptname, `join data = ${data}`);}
-  )
-  .catch(
-    (err) => {console.log(scriptname, `join err = ${err}`);}
-  );
-}
-
-function part(client, kanal) {
-  if ( !kanal.startsWith("#") ) {
-    kanal = "#" + kanal;
-  }
-  client.part( kanal )
-  .then(
-    (data) => {console.log(scriptname, `part data = ${data}`);}
-  )
-  .catch(
-    (err) => {console.log(scriptname, `part err = ${err}`);}
-  );
-}
-
-function sende(target, nachricht) {
-  if ( !target.startsWith("#") ) {
-    target = "#" + target;
-  }
-  try {
-    client.say(target, nachricht)
-      .then(
-        (data) => {if ( DEBUG ) console.log(scriptname, `gesendet data = ${data}`);}
-      )
-      .catch(
-        (err) => {console.log(scriptname, `gesendet err = ${err}`);}
-      );
-  } catch(err) {
-    console.log(`* err = ${err}`);
-  }
-}
-
-function onConnectedHandler (addr, port) {
-  console.log( scriptname, `Connected to ${addr}:${port}`);
-  let anfrage = {
-    id: 0
-  };
-  offeneAnfragen.push(anfrage);
+let anfrage = {
+  id: 0
+};
+offeneAnfragen.push(anfrage);
+setTimeout( () => {
   process.send({
     type: konstanten.datenbankAbfrage,
     anfragenID: 0,
     query: "SELECT * FROM sync",
     variables: [ ]
+  });
+}, 1000);
+
+function join( kanal ) {
+  kinder["twitchChat"].send({
+    type: konstanten.joinTwitchChat,
+    target: kanal
+  });
+}
+
+function part( kanal ) {
+  kinder["twitchChat"].send({
+    type: konstanten.partTwitchChat,
+    target: kanal
+  });
+}
+
+function sende(target, nachricht) {
+  kinder["twitchChat"].send({
+    type: konstanten.sendeAnTwitchChat,
+    target: target,
+    nachricht: nachricht
   });
 }

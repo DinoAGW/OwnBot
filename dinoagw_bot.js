@@ -1,5 +1,6 @@
 const admins = ["dinoagw"];
 const autostartProgramme = [
+  "twitchChat",
   "hallo",
   "punkte",
   "duell",
@@ -7,16 +8,24 @@ const autostartProgramme = [
   "todo",
   "chatsync"
 ];
+const DEBUG = false;
+
+const channels = [
+  "dinoagw"
+//  , "lechtalnixe"
+//  , "apexfabinatorxy"
+//  , "smithhover"
+];
+
+const pwd = require('./Passwort.js');
+
 const erlaubteProgramme = [
   
 ].concat(autostartProgramme);
 
-const DEBUG = false;
 const scriptname = "dinoagw_bot:";
 
-const pwd = require('./Passwort.js');
 const konstanten = require('./Konstanten.js');
-const tmi = require('tmi.js');
 const mariadb = require('mariadb');
 const fork = require('child_process').fork;
 
@@ -28,35 +37,18 @@ const pool = mariadb.createPool({
      connectionLimit: 5
 });
 
-const opts = {
-  identity: {
-    username: "dinoagw_bot",
-    password: pwd.dinoagw_bot
-  },
-  connection: {
-    reconnect: true
-  },
-  channels: [
-    "dinoagw"
-//    , "lechtalnixe"
-//    , "apexfabinatorxy"
-//    , "smithhover"
-  ]
-};
-var client = new tmi.client(opts);
+var kinder = {};
+var prefixe = {};
 
-var eineID = 0;
-var kinder = [];
-var prefixe = [];
-//var child;
-
-client.on('message', onMessageHandler);
-client.on('connected', onConnectedHandler);
-client.connect();
-for ( iter in autostartProgramme ) {
+for ( let iter in autostartProgramme ) {
   erzeuge( autostartProgramme[iter] );
 }
-
+kinder["twitchChat"].send({
+  type: konstanten.starteTwitchChat,
+  username: "dinoagw_bot",
+  password: pwd.dinoagw_bot,
+  channels: channels
+});
 
 var time = 0;
 var anfragen = [];
@@ -74,13 +66,7 @@ setInterval(() => {
 
 var geheimModus = false;
 
-function onMessageHandler (target, context, msg, self) {
-  if (self) { return; } // Ignore messages from the bot
-  
-  if (context.username == client.getUsername()) {
-	  console.log("kann wirklich passieren");
-	  return;
-  }
+function empfange(target, context, msg) {
   var nachricht = msg.trim();
   var geheim = false;
   if (nachricht.startsWith("~")) {
@@ -143,23 +129,13 @@ function onMessageHandler (target, context, msg, self) {
     }
     
     if ( befehl == "starte:" && isAdmin ) {
-      for( iter in kinder ) {
-        if( argument == kinder[iter].program ) {
-          kinder[iter].send({
-            type: konstanten.befehl,
-            prefix: "!stop",
-            argument: argument
-          });
-          kinder.splice(iter, 1);
-          iter--;
-        }
-      }
-      for( iter in prefixe ) {
-        if( argument == prefixe[iter].child.program ) {
-          prefixe.splice(iter, 1);
-          iter--;
-        }
-      }
+      kinder[argument].send({
+        type: konstanten.befehl,
+        prefix: "!stop",
+        argument: argument
+      });
+      delete kinder[argument];
+      delete prefixe[argument];
       if ( erlaubteProgramme.includes(argument) ) {
         erzeuge( argument );
       } else {
@@ -168,23 +144,13 @@ function onMessageHandler (target, context, msg, self) {
     }
 
     if ( befehl == "stoppe:" && isAdmin ) {
-      for( iter in kinder ) {
-        if( argument == kinder[iter].program ) {
-          kinder[iter].send({
-            type: konstanten.befehl,
-            prefix: "!stop",
-            argument: argument
-          });
-          kinder.splice(iter, 1);
-          iter--;
-        }
-      }
-      for( iter in prefixe ) {
-        if( argument == prefixe[iter].child.program ) {
-          prefixe.splice(iter, 1);
-          iter--;
-        }
-      }
+      kinder[argument].send({
+        type: konstanten.befehl,
+        prefix: "!stop",
+        argument: argument
+      });
+      delete kinder[iter];
+      delete prefixe[argument];
     }
     
     if ( befehl == "kinder:" && isAdmin ) {
@@ -202,9 +168,8 @@ function onMessageHandler (target, context, msg, self) {
           argument: argument
         });
       }
-      eineID = 0;
-      kinder = [];
-      prefixe = [];
+      kinder = {};
+      prefixe = {};
     }
     
     if ( befehl == "geheimmodus" && isAdmin ) {
@@ -224,17 +189,17 @@ function erzeuge(kind) {
   var options = {
     stdio: [ 'inherit', 'inherit', 'inherit', 'ipc' ]
   };
-  let child = fork(program, parameters, options);
+  var child = fork(program, parameters, options);
   child.on('message', async (message) => {
     if ( DEBUG ) console.log("Kind schreibt: ", message);
     if ( message.type == konstanten.sendeAnChat ) {
       sende(message.target, message.nachricht);
     }
     if ( message.type == konstanten.anwesend ) {
-      prefixe.push({
+      prefixe[kind] = {
         child: child,
         prefixe: message.prefixe
-      });
+      };
     }
     if ( message.type == konstanten.datenbankEingabe ) {
       let conn;
@@ -279,44 +244,26 @@ function erzeuge(kind) {
       }
       anfragen.push(anfrage);
     }
+    if ( message.type == konstanten.empfangeVonTwitchChat ) {
+      empfange( message.target, message.context, message.msg );
+    }
   });
   child.on('error', (err) => {
     console.log(kind + " gibt einen Fehler aus: " + err);
-    for( iter in kinder ) {
-      if( child.id == kinder[iter].id ) {
-        kinder.splice(iter, 1);
-        iter--;
-      }
-    }
-    for( iter in prefixe ) {
-      if( child.id == prefixe[iter].child.id ) {
-        prefixe.splice(iter, 1);
-        iter--;
-      }
-    }
+    delete kinder[kind];
+    delete prefixe[kind];
   });
-  let id = eineID++;
-  child.id = id;
-  child.program = kind;
-  kinder.push(child);
+  kinder[kind] = child;
+  return child;
 }
 
 function sende(target, nachricht) {
-  if ( !target.startsWith("#") ) {
-    target = "#" + target;
-  }
   if ( geheimModus ) {
     nachricht = "~" + nachricht;
   }
-  client.say(target, nachricht)
-    .then(
-      (data) => {console.log(scriptname, `gesendet data = ${data}`);}
-    )
-    .catch(
-      (err) => {console.log(scriptname, `gesendet err = ${err}`);}
-    );
-}
-
-function onConnectedHandler (addr, port) {
-  console.log( scriptname, `Connected to ${addr}:${port}`);
+  kinder["twitchChat"].send({
+    type: konstanten.sendeAnTwitchChat,
+    target: target,
+    nachricht: nachricht
+  });
 }

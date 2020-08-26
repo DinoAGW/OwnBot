@@ -2,7 +2,7 @@ const konstanten = require('./Konstanten.js');
 const prefixe = [
   "!todo"
 ];
-const DEBUG = true;
+const DEBUG = false;
 
 process.on('message', (message) => {
   if ( DEBUG ) console.log("Kind erhalten: ", message );

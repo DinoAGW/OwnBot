@@ -61,5 +61,11 @@ Der Gewinner kriegt die Einsätze von allen Anderen.
 
 Usage: !rennen einsatz
 
+## twitchChat
+Helper-skript um die Interaktion mit dem Chat zu verwalten.
+Wird von dinoagw_bot und von chatsync genutzt.
+Reiht alle zu sendenden Nachrichten in einer Warteschlange auf, sendet die nach und nach und fährt erst fort wenn die letzte Nachricht angekommen ist.
+Wartet 31 Sekunden bei wiederholten Nachrichten und 2 Sekunden zwischen allen Nachrichten, falls der Bot nicht mod ist.
+
 # P.S.
 Diese Readme wird sporadisch gepflegt. Wenn etwas nicht stimmt, bitte eine Flüsternachricht auf Twitch an DinoAGW, sonst findet ihr mich auch auf meinem Discord Server: https://discord.gg/m4c79XN
