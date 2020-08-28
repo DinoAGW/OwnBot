@@ -14,8 +14,6 @@ const myPrefixe = [
 
 const scriptname = "chatsync:";
 
-const fork = require('child_process').fork;
-
 const timeTillTimeout = 30;
 
 var eineAnfragenID = 1;
@@ -24,12 +22,9 @@ var offeneAnfragen = [];
 var warteRaum = [];
 var chatRaum = [];
 
-var kinder = {};
-var prefixe = {};
-
-erzeuge( "twitchChat" );
-kinder["twitchChat"].send({
+process.send({
   type: konstanten.starteTwitchChat,
+  script: "chatsync",
   username: "chatsync",
   password: pwd.chatsync,
   channels: []
@@ -79,6 +74,7 @@ function empfange (target, context, msg) {
           query: "UPDATE sync SET raum = 0 WHERE kanal = ?",
           variables: [ kanal ]
         });
+        //todo: er muss aber noch alle anderen Bescheid sagen
       }
     }
   }
@@ -139,83 +135,9 @@ function empfange (target, context, msg) {
   }
 }
 
-function erzeuge(kind) {
-  var program = `${__dirname}/${kind}.js`;
-  var parameters = [];
-  var options = {
-    stdio: [ 'inherit', 'inherit', 'inherit', 'ipc' ]
-  };
-  var child = fork(program, parameters, options);
-  child.on('message', async (message) => {
-    if ( DEBUG ) console.log("Kind schreibt: ", message);
-    if ( message.type == konstanten.sendeAnChat ) {
-      sende(message.target, message.nachricht);
-    }
-    if ( message.type == konstanten.anwesend ) {
-      prefixe[kind] = {
-        child: child,
-        prefixe: message.prefixe
-      };
-    }
-    if ( message.type == konstanten.datenbankEingabe ) {
-      let conn;
-      let res;
-      try {
-        conn = await pool.getConnection();
-        if ( DEBUG ) console.log("Datenbankeingabe: ", message.query, message.variables);
-        res = await conn.query(message.query, message.variables);
-        if ( DEBUG ) console.log("Datenbankeingabe ergab: ", res);
-      } catch (err) {
-        console.log("Datenbankanfrage fehlgeschlagen: ", message.query, " " , message.variables);
-        throw err;
-      } finally {
-        if (conn) return conn.end();
-      }
-    }
-    if ( message.type == konstanten.datenbankAbfrage ) {
-      let conn;
-      let res;
-      if ( DEBUG ) console.log("Datenbankabfrage: ", message.query, message.variables);
-      try {
-        conn = await pool.getConnection();
-        res = await conn.query(message.query, message.variables);
-        if ( DEBUG ) console.log("Datenbankabfrage ergab: ", res);
-        child.send({
-          type: konstanten.datenbankAntwort,
-          anfragenID: message.anfragenID,
-          res: res
-        });
-      } catch (err) {
-        console.log("Datenbankanfrage fehlgeschlagen: ", message.query, " " , message.variables);
-        throw err;
-      } finally {
-        if (conn) return conn.end();
-      }
-    }
-    if ( message.type == konstanten.erinnereMich ) {
-      let anfrage = {
-        time: time+message.time,
-        child: child,
-        nachricht: message.nachricht
-      }
-      anfragen.push(anfrage);
-    }
-    if ( message.type == konstanten.empfangeVonTwitchChat ) {
-      empfange( message.target, message.context, message.msg );
-    }
-  });
-  child.on('error', (err) => {
-    console.log(kind + " gibt einen Fehler aus: " + err);
-    delete kinder[kind];
-    delete prefixe[kind];
-  });
-  kinder[kind] = child;
-  return child;
-}
-
 process.on('message', (message) => {
-  if ( DEBUG ) console.log( scriptname, "Message:", message );
   if ( message.type == konstanten.erinnereMich ) {
+    if ( DEBUG ) console.log( scriptname, "erinnereMich", message.kanal, message.target, message.username, message.raum );
     //Anfrage Timeout
     if ( warteRaum[message.kanal] == message.raum ) {
       delete warteRaum[message.kanal];
@@ -234,7 +156,7 @@ process.on('message', (message) => {
   }
 
   if ( message.type == konstanten.datenbankAntwort ) {
-    if ( DEBUG ) console.log( scriptname, "Datenbankantwort #"+message.anfragenID+" erhalten:", message );
+    if ( DEBUG ) console.log( scriptname, "datenbankAntwort", message.anfragenID, message.res );
     let anfrage;
     for ( let iter in offeneAnfragen ) {
       if ( offeneAnfragen[iter].id == message.anfragenID ) {
@@ -263,6 +185,7 @@ process.on('message', (message) => {
       process.exit();
     }
     if ( message.prefix == "!invite" ) {
+      if ( DEBUG ) console.log( scriptname, "invite", message.target, message.username, message.argument );
       if ( message.isAdmin || message.isStreamer || message.isMod ) {
         let kanal;
         let raum;
@@ -329,6 +252,7 @@ process.on('message', (message) => {
       }
     }
     if ( message.prefix == "!stopallsync" ) {
+      if ( DEBUG ) console.log( scriptname, "stopallsync", message.target, message.username );
       if ( message.isAdmin ) {
         warteRaum = [];
         for ( let iter in chatRaum ) {
@@ -354,6 +278,7 @@ process.on('message', (message) => {
       }
     }
     if ( message.prefix == "!sync" ) {
+      if ( DEBUG ) console.log( scriptname, "sync", message.target, message.username, message.argument );
       if ( message.isAdmin || message.isStreamer || message.isMod ) {
         let raum;
         if ( message.isAdmin && message.argument != "" ) {
@@ -396,6 +321,7 @@ process.on('message', (message) => {
       }
     }
     if ( message.prefix == "!kick" ) {
+      if ( DEBUG ) console.log( scriptname, "kick", message.target, message.username, message.argument );
       if ( message.isAdmin || message.isStreamer || message.isMod ) {
         //beende die Synchronisation für jemand Anderen
         let kanal;
@@ -413,12 +339,12 @@ process.on('message', (message) => {
             target: kanal,
             nachricht: "Ihr Kanal wurde aus dem Chatraum #" + raum + " entfernt."
           });
-          part( message.target );
           process.send({
             type: konstanten.sendeAnChat,
             target: message.target,
             nachricht: "@" + message.username + " " + kanal + " Wurde aus dem Chatraum #" + raum + " entfernt."
           });
+          part( message.target );
           process.send({
             type: konstanten.datenbankEingabe,
             query: "UPDATE sync SET raum = 0 WHERE kanal = ?",
@@ -440,6 +366,7 @@ process.on('message', (message) => {
       }
     }
     if ( message.prefix == "!syncstatus" ) {
+      if ( DEBUG ) console.log( scriptname, "syncstatus", message.target, message.username );
       if ( message.isAdmin ) {
         let leer = true;
         for ( iter in warteRaum ) {
@@ -474,6 +401,10 @@ process.on('message', (message) => {
       }
     }
   }
+  if ( message.type == konstanten.empfangeVonTwitchChat ) {
+    console.log( scriptname, "empfangeVonTwitch", message.script, message.username, message.target, message.context.username, message.msg );
+    empfange( message.target, message.context, message.msg );
+  }
 });
 
 process.send({
@@ -494,22 +425,28 @@ setTimeout( () => {
 }, 1000);
 
 function join( kanal ) {
-  kinder["twitchChat"].send({
+  process.send({
     type: konstanten.joinTwitchChat,
-    target: kanal
+    script: "chatsync",
+    username: "chatsync",
+    target: kanal,
   });
 }
 
 function part( kanal ) {
-  kinder["twitchChat"].send({
+  process.send({
     type: konstanten.partTwitchChat,
+    script: "chatsync",
+    username: "chatsync",
     target: kanal
   });
 }
 
 function sende(target, nachricht) {
-  kinder["twitchChat"].send({
+  process.send({
     type: konstanten.sendeAnTwitchChat,
+    script: "chatsync",
+    username: "chatsync",
     target: target,
     nachricht: nachricht
   });

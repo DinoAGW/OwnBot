@@ -1,12 +1,13 @@
 const admins = ["dinoagw"];
 const autostartProgramme = [
   "twitchChat",
+  "more_dinoagw_bot",
   "hallo",
   "punkte",
   "duell",
   "rennen",
   "todo",
-  "chatsync"
+  "chatsync",
 ];
 const DEBUG = false;
 
@@ -45,6 +46,7 @@ for ( let iter in autostartProgramme ) {
 }
 kinder["twitchChat"].send({
   type: konstanten.starteTwitchChat,
+  script: "dinoagw_bot",
   username: "dinoagw_bot",
   password: pwd.dinoagw_bot,
   channels: channels
@@ -156,7 +158,7 @@ function empfange(target, context, msg) {
     if ( befehl == "kinder:" && isAdmin ) {
       for ( var iter in kinder ) {
         kinder[iter].send({type: konstanten.nachricht, nachricht: argument});
-        console.log("ausgegeben: ", {type: konstanten.nachricht, nachricht: argument});
+        console.log(scriptname, "ausgegeben: ", {type: konstanten.nachricht, nachricht: argument});
       }
     }
     
@@ -191,7 +193,7 @@ function erzeuge(kind) {
   };
   var child = fork(program, parameters, options);
   child.on('message', async (message) => {
-    if ( DEBUG ) console.log("Kind schreibt: ", message);
+    if ( DEBUG ) console.log(scriptname, "Kind schreibt: ", message);
     if ( message.type == konstanten.sendeAnChat ) {
       sende(message.target, message.nachricht);
     }
@@ -206,11 +208,11 @@ function erzeuge(kind) {
       let res;
       try {
         conn = await pool.getConnection();
-        if ( DEBUG ) console.log("Datenbankeingabe: ", message.query, message.variables);
+        if ( DEBUG ) console.log(scriptname, "Datenbankeingabe: ", message.query, message.variables);
         res = await conn.query(message.query, message.variables);
-        if ( DEBUG ) console.log("Datenbankeingabe ergab: ", res);
+        if ( DEBUG ) console.log(scriptname, "Datenbankeingabe ergab: ", res);
       } catch (err) {
-        console.log("Datenbankanfrage fehlgeschlagen: ", message.query, " " , message.variables);
+        console.log(scriptname, "Datenbankanfrage fehlgeschlagen: ", message.query, " " , message.variables);
         throw err;
       } finally {
         if (conn) return conn.end();
@@ -219,18 +221,18 @@ function erzeuge(kind) {
     if ( message.type == konstanten.datenbankAbfrage ) {
       let conn;
       let res;
-      if ( DEBUG ) console.log("Datenbankabfrage: ", message.query, message.variables);
+      if ( DEBUG ) console.log(scriptname, "Datenbankabfrage: ", message.query, message.variables);
       try {
         conn = await pool.getConnection();
         res = await conn.query(message.query, message.variables);
-        if ( DEBUG ) console.log("Datenbankabfrage ergab: ", res);
+        if ( DEBUG ) console.log(scriptname, "Datenbankabfrage ergab: ", res);
         child.send({
           type: konstanten.datenbankAntwort,
           anfragenID: message.anfragenID,
           res: res
         });
       } catch (err) {
-        console.log("Datenbankanfrage fehlgeschlagen: ", message.query, " " , message.variables);
+        console.log(scriptname, "Datenbankanfrage fehlgeschlagen: ", message.query, " " , message.variables);
         throw err;
       } finally {
         if (conn) return conn.end();
@@ -245,11 +247,57 @@ function erzeuge(kind) {
       anfragen.push(anfrage);
     }
     if ( message.type == konstanten.empfangeVonTwitchChat ) {
-      empfange( message.target, message.context, message.msg );
+      console.log( scriptname, "empfangeVonTwitch", message.script, message.username, message.target, message.msg );
+      if ( message.script == "dinoagw_bot" ) {
+        empfange( message.target, message.context, message.msg );
+      } else {
+        kinder[message.script].send({
+          type: konstanten.empfangeVonTwitchChat,
+          script: message.script,
+          username: message.username,
+          target: message.target,
+          context: message.context,
+          msg: message.msg
+        })
+      }
+    }
+    if ( message.type == konstanten.starteTwitchChat ) {
+      kinder["twitchChat"].send({
+        type: konstanten.starteTwitchChat,
+        script: message.script,
+        username: message.username,
+        password: message.password,
+        channels: message.channels
+      });
+    }
+    if ( message.type == konstanten.sendeAnTwitchChat ) {
+      kinder["twitchChat"].send({
+        type: konstanten.sendeAnTwitchChat,
+        script: kind,
+        username: message.username,
+        target: message.target,
+        nachricht: message.nachricht,
+      });
+    }
+    if ( message.type == konstanten.joinTwitchChat ) {
+      kinder["twitchChat"].send({
+        type: konstanten.joinTwitchChat,
+        script: message.script,
+        username: message.username,
+        target: message.target,
+      });
+    }
+    if ( message.type == konstanten.partTwitchChat ) {
+      kinder["twitchChat"].send({
+        type: konstanten.partTwitchChat,
+        script: message.script,
+        username: message.username,
+        target: message.target
+      });
     }
   });
   child.on('error', (err) => {
-    console.log(kind + " gibt einen Fehler aus: " + err);
+    console.log(scriptname, kind + " gibt einen Fehler aus: " + err);
     delete kinder[kind];
     delete prefixe[kind];
   });
@@ -263,6 +311,8 @@ function sende(target, nachricht) {
   }
   kinder["twitchChat"].send({
     type: konstanten.sendeAnTwitchChat,
+    script: "dinoagw_bot",
+    username: "dinoagw_bot",
     target: target,
     nachricht: nachricht
   });

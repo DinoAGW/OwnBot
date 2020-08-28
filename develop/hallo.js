@@ -1,4 +1,3 @@
-const konstanten = require('./Konstanten.js');
 const prefixe = [
   "hallo",
   "!hallo",
@@ -7,6 +6,7 @@ const prefixe = [
 ];
 const DEBUG = false;
 
+const konstanten = require('./Konstanten.js');
 const utilities = require('./utilities.js');
 var eineAnfragenID = 0;
 var offeneAnfragen = [];
