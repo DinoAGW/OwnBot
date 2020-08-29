@@ -9,6 +9,7 @@ const tmi = require('tmi.js');
 
 var activeChannels = {};
 var flushChannels = {};
+var qaChannels = {}
 var clients = {};
 var qaClient = new tmi.client({
   connection: {reconnect: true},
@@ -29,6 +30,14 @@ setInterval(() => {
     for ( let username in activeChannels[script] ) {
       for ( let iter in activeChannels[script][username] ) {
         let target = activeChannels[script][username][iter];
+        if ( flushChannels[script]!=undefined && flushChannels[script][username]!=undefined && flushChannels[script][username].includes(target) ) {
+          for ( let iter in flushChannels[script][username] ) {
+            if ( target == flushChannels[script][username][iter] ) {
+              flushChannels[script][username].splice(iter, 1);
+              break;
+            }
+          }
+        }
         cooldown[username][target]--;
         if ( cooldown[username][target]==-31000 ) {
           cooldown[username][target] = 0;
@@ -130,7 +139,7 @@ process.on('message', (message) => {
     if ( (activeChannels[message.script]==undefined || activeChannels[message.script][message.username]==undefined || !activeChannels[message.script][message.username].includes(message.target)) 
       && (flushChannels[message.script]==undefined || flushChannels[message.script][message.username]==undefined || !flushChannels[message.script][message.username].includes(message.target)) ) {
       if ( cooldown[message.username] == undefined ) cooldown[message.username] = {};
-      if ( cooldown[message.username][message.target] == undefined ) cooldown[message.username][message.target] = 1;
+      if ( cooldown[message.username][message.target] == undefined ) cooldown[message.username][message.target] = 2000;
       if ( nachrichten[message.username] == undefined ) nachrichten[message.username] = {};
       if ( nachrichten[message.username][message.target] == undefined ) nachrichten[message.username][message.target] = [];
       if ( lastNachricht[message.username] == undefined ) lastNachricht[message.username] = {};
@@ -149,8 +158,8 @@ process.on('message', (message) => {
     if ( activeChannels[message.script]==undefined ) activeChannels[message.script] = {};
     if ( activeChannels[message.script][message.username]==undefined ) activeChannels[message.script][message.username] = [];
     for ( let iter in message.channels ) {
-      cooldown[message.username][message.channels[iter]] = 1000;
-      nachrichten[message.username][message.channels[iter]] = [];
+      if ( cooldown[message.username][message.target] == undefined ) cooldown[message.username][message.channels[iter]] = 2000;
+      if ( nachrichten[message.username][message.target] == undefined ) nachrichten[message.username][message.channels[iter]] = [];
       activeChannels[message.script][message.username].push( message.channels[iter] );
       qaJoin( message.channels[iter] )
     }
@@ -196,8 +205,11 @@ process.on('message', (message) => {
   }
   if ( message.type == konstanten.joinTwitchChat ) {
     if ( DEBUG ) console.log( scriptname, "joinTwitchChat", message.script, message.username, message.target );
+    let count = 0;
     let check = setInterval(()=>{
+      if ( 10000==count++ ) console.log( scriptname, "joinTwitchChat Problem", message.script, message.username, message.target );
       if ( clients[message.username] != undefined ) {
+        if ( DEBUG ) console.log( scriptname, "joinTwitchChat start ("+count+")", message.script, message.username, message.target );
         if ( activeChannels[message.script]==undefined || activeChannels[message.script][message.username]==undefined || !activeChannels[message.script][message.username].includes(message.target) ) {
           join( message.script, message.username, message.target );
         } else {
@@ -209,8 +221,11 @@ process.on('message', (message) => {
   }
   if ( message.type == konstanten.partTwitchChat ) {
     if ( DEBUG ) console.log( scriptname, "partTwitchChat", message.script, message.username, message.target );
+    let count = 0;
     let check = setInterval(()=>{
+      if ( 10000==count++ ) console.log( scriptname, "partTwitchChat Problem", message.script, message.username, message.target );
       if ( clients[message.username] != undefined ) {
+        if ( DEBUG ) console.log( scriptname, "partTwitchChat start ("+count+")", message.script, message.username, message.target );
         if ( activeChannels[message.script]==undefined || activeChannels[message.script][message.username]==undefined || !activeChannels[message.script][message.username].includes(message.target) ) {
           console.log(scriptname, "Bin garnicht mit Kanal", message.target, "verbunden.");
         } else {
@@ -243,19 +258,22 @@ function qaOnConnectedHandler (addr, port) {
 
 function join( script, username, kanal ) {
   if ( DEBUG ) console.log( scriptname, "joine nun", script, username, kanal );
+  let count = 0;
   let check = setInterval(()=>{
+    if ( 10000==count++ ) console.log( scriptname, "joine Problem", script, username, kanal );
     if( clients[username].readyState() == "OPEN" ) {
-      cooldown[username][kanal] = 1000;
-      nachrichten[username][kanal] = [];
+      if ( DEBUG ) console.log( scriptname, "joine start ("+count+")", script, username, kanal );
+      if ( cooldown[username][kanal] == undefined ) cooldown[username][kanal] = 2000;
+      if ( nachrichten[username][kanal] == undefined ) nachrichten[username][kanal] = [];
       if ( activeChannels[script]==undefined ) activeChannels[script] = {};
       if ( activeChannels[script][username]==undefined ) activeChannels[script][username] = [];
       activeChannels[script][username].push( kanal );
         clients[username].join( "#" + kanal )
         .then(
-          (data) => {console.log(scriptname, `join data = ${data}`);}
+          (data) => {console.log( scriptname, `join data = ${data}`, script, username, kanal );}
         )
         .catch(
-          (err) => {console.log(scriptname, `join err = ${err}`);}
+          (err) => {console.log( scriptname, `join err = ${err}`, script, username, kanal );}
         );
       qaJoin( kanal );
       clearInterval(check);
@@ -264,19 +282,27 @@ function join( script, username, kanal ) {
 }
 
 function qaJoin( kanal ) {
-  if ( DEBUG ) console.log( scriptname, "qa joine nun", kanal );
-  let check = setInterval(()=>{
-    if( qaClient.readyState() == "OPEN" ) {
-      qaClient.join( "#" + kanal )
-      .then(
-        (data) => {if ( DEBUG ) console.log(scriptname, `qa join data = ${data}`);}
-      )
-      .catch(
-        (err) => {console.log(scriptname, `qa join err = ${err}`);}
-      );
-      clearInterval(check);
-    }
-  }, 10);
+  if ( qaChannels[kanal]==undefined ) {
+    qaChannels[kanal] = true;
+    if ( DEBUG ) console.log( scriptname, "qa joine nun", kanal );
+    let count = 0;
+    let check = setInterval(()=>{
+      if ( 10000==count++ ) console.log( scriptname, "qa joine Problem", kanal );
+      if( qaClient.readyState() == "OPEN" ) {
+        if ( DEBUG ) console.log( scriptname, "qa joine start ("+count+")", kanal );
+        qaClient.join( "#" + kanal )
+        .then(
+          (data) => {if ( DEBUG ) console.log(scriptname, `qa join data = ${data}`, kanal);}
+        )
+        .catch(
+          (err) => {console.log(scriptname, `qa join err = ${err}`, kanal);}
+        );
+        clearInterval(check);
+      }
+    }, 10);
+  } else {
+    if ( DEBUG ) console.log( scriptname, "qa ist schon gejoined", kanal );
+  }
 }
 
 function part( script, username, kanal ) {

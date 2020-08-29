@@ -1,5 +1,5 @@
 const admins = ["dinoagw"];
-const DEBUG = false;
+const DEBUG = true;
 
 const pwd = require('./Passwort.js');
 
@@ -14,7 +14,7 @@ const myPrefixe = [
 
 const scriptname = "chatsync:";
 
-const timeTillTimeout = 30;
+const timeTillTimeout = 60;
 
 var eineAnfragenID = 1;
 var offeneAnfragen = [];
@@ -59,10 +59,9 @@ function empfange (target, context, msg) {
 
   if ( prefix == "!stopsync" ) {
     if ( isAdmin || isStreamer || isMod ) {
-      let kanal = target;
-      let raum = chatRaum[kanal];
+      let raum = chatRaum[target];
       if ( raum != undefined ) {
-        delete chatRaum[kanal];
+        delete chatRaum[target];
         process.send({
           type: konstanten.sendeAnChat,
           target: target,
@@ -72,7 +71,7 @@ function empfange (target, context, msg) {
         process.send({
           type: konstanten.datenbankEingabe,
           query: "UPDATE sync SET raum = 0 WHERE kanal = ?",
-          variables: [ kanal ]
+          variables: [ target ]
         });
         //todo: er muss aber noch alle anderen Bescheid sagen
       }
@@ -98,11 +97,10 @@ function empfange (target, context, msg) {
   if ( prefix == "@dinoagw_bot" ) {
     if ( isAdmin || isStreamer || isMod ) {
       if ( argument.startsWith("ja") ) {
-        let kanal = target;
-        let raum = warteRaum[kanal];
+        let raum = warteRaum[target];
         if ( raum != undefined ) {
-          delete warteRaum[kanal];
-          chatRaum[kanal] = raum;
+          delete warteRaum[target];
+          chatRaum[target] = raum;
           process.send({
             type: konstanten.sendeAnChat,
             target: target,
@@ -111,7 +109,7 @@ function empfange (target, context, msg) {
           process.send({
             type: konstanten.datenbankEingabe,
             query: "REPLACE INTO sync (kanal, raum) VALUES (?, ?)",
-            variables: [ kanal, raum ]
+            variables: [ target, raum ]
           });
         }
       }
@@ -124,11 +122,24 @@ function empfange (target, context, msg) {
     }
   }
   //die eigentliche Funktionalität
-  let kanal = target;
-  if ( !geheim && chatRaum[kanal]>0 ) {
-    let raum = chatRaum[kanal];
+  if ( !geheim && chatRaum[target]>0 ) {
+    let raum = chatRaum[target];
     for ( iter in chatRaum ) {
-      if ( iter != kanal && chatRaum[iter] == raum ) {
+      if ( iter != target && chatRaum[iter] == raum ) {
+        for ( let iter = 0; iter < nachricht.length-1; iter++ ) {
+          if ( nachricht.charAt(iter)=="." && nachricht.charAt(iter+1)!=" " ) {
+            let anfang = nachricht.substring(0, iter+1);
+            let ende = nachricht.substring(iter+1, nachricht.length);
+            nachricht = anfang + " " + ende;
+          }
+        }
+        for ( let iter = 0; iter < nachricht.length-3; iter++ ) {
+          if ( nachricht.charAt(iter)=="h" && nachricht.charAt(iter+1)=="t" && nachricht.charAt(iter+2)=="t" && nachricht.charAt(iter+3)=="p" ) {
+            let anfang = nachricht.substring(0, iter);
+            let ende = nachricht.substring(iter+4, nachricht.length);
+            nachricht = anfang + "***" + ende;
+          }
+        }
         sende( iter, username + ": " + nachricht.substring(0, 255) );
       }
     }
@@ -150,7 +161,7 @@ process.on('message', (message) => {
       process.send({
         type: konstanten.sendeAnChat,
         target: message.target,
-        nachricht: "@" + message.username + " timeout"
+        nachricht: "@" + message.username + " timeout (Chatsync Einladung von " + message.kanal + ")"
       });
     }
   }
@@ -291,25 +302,33 @@ process.on('message', (message) => {
             }
           }
         }
-        //verbinde mit Raum #
-        if ( isNaN(raum) || raum<1 ) {
-          process.send({
-            type: konstanten.sendeAnChat,
-            target: message.target,
-            nachricht: "@" + message.username + " Der Befehl wird wie folgt genutzt: !sync Raum"
-          });
+        if ( chatRaum[message.target]!=undefined ) {
+          //verbinde mit Raum #
+          if ( isNaN(raum) || raum<1 ) {
+            process.send({
+              type: konstanten.sendeAnChat,
+              target: message.target,
+              nachricht: "@" + message.username + " Der Befehl wird wie folgt genutzt: !sync Raum"
+            });
+          } else {
+            chatRaum[message.target] = raum;
+            join( message.target );
+            process.send({
+              type: konstanten.sendeAnChat,
+              target: message.target,
+              nachricht: "@" + message.username + " Ihr Kanal betritt nun Chatraum #" + raum
+            });
+            process.send({
+              type: konstanten.datenbankEingabe,
+              query: "REPLACE INTO sync (kanal, raum) VALUES (?, ?)",
+              variables: [ message.target, raum ]
+            });
+          }
         } else {
-          chatRaum[message.target] = raum;
-          join( message.target );
           process.send({
             type: konstanten.sendeAnChat,
             target: message.target,
-            nachricht: "@" + message.username + " Ihr Kanal betritt nun Chatraum #" + raum
-          });
-          process.send({
-            type: konstanten.datenbankEingabe,
-            query: "REPLACE INTO sync (kanal, raum) VALUES (?, ?)",
-            variables: [ message.target, raum ]
+            nachricht: "@" + message.username + " Du befindest dich bereits in einem Chatraum."
           });
         }
       } else {
@@ -344,7 +363,7 @@ process.on('message', (message) => {
             target: message.target,
             nachricht: "@" + message.username + " " + kanal + " Wurde aus dem Chatraum #" + raum + " entfernt."
           });
-          part( message.target );
+          part( kanal );
           process.send({
             type: konstanten.datenbankEingabe,
             query: "UPDATE sync SET raum = 0 WHERE kanal = ?",
@@ -415,34 +434,35 @@ let anfrage = {
   id: 0
 };
 offeneAnfragen.push(anfrage);
-setTimeout( () => {
-  process.send({
-    type: konstanten.datenbankAbfrage,
-    anfragenID: 0,
-    query: "SELECT * FROM sync",
-    variables: [ ]
-  });
-}, 1000);
+process.send({
+  type: konstanten.datenbankAbfrage,
+  anfragenID: 0,
+  query: "SELECT * FROM sync",
+  variables: [ ]
+});
 
-function join( kanal ) {
+function join( target ) {
+  if ( DEBUG ) console.log( scriptname, "joine nun", target );
   process.send({
     type: konstanten.joinTwitchChat,
     script: "chatsync",
     username: "chatsync",
-    target: kanal,
+    target: target,
   });
 }
 
-function part( kanal ) {
+function part( target ) {
+  if ( DEBUG ) console.log( scriptname, "parte nun", target );
   process.send({
     type: konstanten.partTwitchChat,
     script: "chatsync",
     username: "chatsync",
-    target: kanal
+    target: target
   });
 }
 
 function sende(target, nachricht) {
+  if ( DEBUG ) console.log( scriptname, "sende nun", target, nachricht );
   process.send({
     type: konstanten.sendeAnTwitchChat,
     script: "chatsync",

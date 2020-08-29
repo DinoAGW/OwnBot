@@ -105,7 +105,7 @@ function empfange(target, context, msg) {
   }
   var username = context.username;
   var isStreamer = false;
-  if ( "#" + username == target ) {
+  if ( username == target ) {
     isStreamer = true;
   }
   var isMod = context.mod;
@@ -119,7 +119,7 @@ function empfange(target, context, msg) {
         argument: argument,
         target: target,
         username:  username,
-        isSreamer: isStreamer,
+        isStreamer: isStreamer,
         isMod: isMod,
         isAdmin: isAdmin
       });
@@ -139,6 +139,11 @@ function empfange(target, context, msg) {
         nachrichtToSend += " Das Argument ist: '" + argument + "'.";
       }
       sende(target, nachrichtToSend);
+    }
+    
+    if ( befehl == "notaus" && (isStreamer || isAdmin) ) {
+      console.log( scriptname, "Beende mich nun");
+      process.exit();
     }
     
     if ( befehl == "starte:" && isAdmin ) {
@@ -225,6 +230,7 @@ function empfange(target, context, msg) {
         }
       }
     } else {
+      console.log(context);
       sende( target, "@" + username + " Du bist nicht dazu autorisiert diesen Befehl zu nutzen." );
     }
   }
@@ -343,7 +349,7 @@ function erzeuge(kind) {
   };
   var child = fork(program, parameters, options);
   child.on('message', (message) => {
-    if ( DEBUG ) console.log(scriptname, "Kind schreibt: ", message);
+    //if ( DEBUG ) console.log(scriptname, "Kind schreibt: ", message);
     if ( message.type == konstanten.sendeAnChat ) {
       sende(message.target, message.nachricht);
     }

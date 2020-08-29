@@ -1,4 +1,4 @@
-const DEBUG = true;
+const DEBUG = false;
 
 const scriptname = "mariadb:";
 const konstanten = require('./Konstanten.js');
