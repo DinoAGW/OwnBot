@@ -30,9 +30,13 @@ module.exports = {
 
 ## dinoagw_bot
 Hauptbot zum starten, stoppen, verwalten der Helper-skripte.
+Mittels !invitebot kanal können Botadmins andere Nutzer dazu einladen den Bot mitzubenutzen. Mit !stopbot können diese später die Mitnutzung widerrufen.
+Wenn alle Stricke reissen: mit !notaus können die Streamer auch den Bot für ALLE beenden. (Sollte nicht gebraucht werden, aber man weiss ja nie^^)
 
 ## chatsync
 Helper-skript zur Verwaltung und Implementierung von Chaträumen.
+Mit !sync betritt man einen Chatraum, mit !invite kanal lädt man einen Kanal zu sich in den Chatraum ein.
+Chats die gemeinsam in einem Chatraum sind, werden miteinander synchronisiert.
 Mittels !multi kann man sich einen Multristre.am Link aller Teilnehmer ausgeben lassen.
 
 Usage: !invite kanal, !stopallsync, !sync, !kick Kanal

@@ -32,7 +32,7 @@ const fork = require('child_process').fork;
 var kinder = {};
 var prefixe = {};
 
-const timeTillTimeout = 30;
+const timeTillTimeout = 90;
 
 var eineAnfragenID = 1;
 var offeneAnfragen = [];
@@ -266,7 +266,7 @@ function empfange(target, context, msg) {
               delete warteRaum[kanal];
               sende( kanal, "timeout" );
               part( kanal );
-              sende( target, "@" + username + " timeout");
+              sende( target, "@" + username + " Einladung timeout (" + kanal + ")" );
             }
           }
         }

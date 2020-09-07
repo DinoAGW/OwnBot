@@ -22,6 +22,7 @@ var nachrichten = {};
 var lastNachricht = {};
 var cooldown = {};
 var onMessageHandler = {};
+var wiederholungen = {}
 
 //die channels Liste füllt sich zurzeit nur immer weiter.
 //Um dies zu vermeiden, könnte man statt eine nachrichtenliste mit einer Eventliste füllen mit nachrichtsenden oder kanallöschen etc.
@@ -66,7 +67,14 @@ setInterval(() => {
         cooldown[username][target]--;
         if ( cooldown[username][target]==-31000 ) {
           cooldown[username][target] = 0;
-          sende( username, target, lastNachricht[username][target]);
+          if ( wiederholungen[target] == undefined ) wiederholungen[target] = 0;
+          wiederholungen[target]++;
+          if ( wiederholungen[target]<30 ) {
+            sende( username, target, lastNachricht[username][target]);
+          } else {
+            console.log( scriptname, "zu viele Wiederholungen. Zur Sicherheit beende mich nun.", target );
+            process.exit();
+          }
         } else if ( cooldown[username][target]==0 ) {
           if ( nachrichten[username][target].length>0 ) {
             if ( lastNachricht[username][target] == nachrichten[username][target][0] ) {
@@ -101,12 +109,15 @@ function qaOnMessageHandler (target, context, msg, self) {
   for ( let script in activeChannels ) {
     if ( activeChannels[script]!=undefined && activeChannels[script][context.username]!=undefined ) {
       if ( DEBUG ) console.log(scriptname, "QA:", self, target, context.mod, context.username, msg);
-      if ( msg == lastNachricht[context.username][target] ) {
+      if ( (msg == lastNachricht[context.username][target]) || (wiederholungen[target] == 2) ) {
+        wiederholungen[target] = 0;
         if ( context.mod ){
           cooldown[context.username][target] = 1;
         } else {
           cooldown[context.username][target] = 2000;
         }
+      } else {
+        console.log( scriptname, "nicht zugeordnet", msg );
       }
       return;
     }
@@ -114,12 +125,15 @@ function qaOnMessageHandler (target, context, msg, self) {
   for ( let script in flushChannels ) {
     if ( flushChannels[script]!=undefined && flushChannels[script][context.username]!=undefined ) {
       if ( DEBUG ) console.log(scriptname, "QA:", self, target, context.mod, context.username, msg);
-      if ( msg == lastNachricht[context.username][target] ) {
+      if ( (msg == lastNachricht[context.username][target]) || (wiederholungen[target] == 2) ) {
+        wiederholungen[target] = 0;
         if ( context.mod ){
           cooldown[context.username][target] = 1;
         } else {
           cooldown[context.username][target] = 2000;
         }
+      } else {
+        console.log( scriptname, "nicht zugeordnet", msg );
       }
       return;
     }

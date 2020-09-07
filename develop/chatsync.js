@@ -1,5 +1,9 @@
 const admins = ["dinoagw"];
 const DEBUG = true;
+const ignoreList = [
+  "dinoagw_bot",
+  "nightbot"
+];
 
 const pwd = require('./Passwort.js');
 
@@ -38,7 +42,7 @@ function empfange (target, context, msg) {
     nachricht = nachricht.substring(1);
   }
   if ( nachricht.startsWith("!") ) geheim = true;
-  if ( context.username == "dinoagw_bot" ) geheim = true;
+  if ( ignoreList.includes(context.username) ) geheim = true;
   var argument;
   var endeDesBefehls = nachricht.indexOf(" ");
   var prefix;
@@ -302,7 +306,7 @@ process.on('message', (message) => {
             }
           }
         }
-        if ( chatRaum[message.target]!=undefined ) {
+        if ( chatRaum[message.target]==undefined ) {
           //verbinde mit Raum #
           if ( isNaN(raum) || raum<1 ) {
             process.send({
