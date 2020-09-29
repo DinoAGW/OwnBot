@@ -9,6 +9,7 @@ const autostartProgramme = [
   "todo",
   "chatsync",
   "pet",
+  "randomtest",
 ];
 const DEBUG = true;
 
