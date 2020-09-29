@@ -8,6 +8,7 @@ const autostartProgramme = [
   "rennen",
   "todo",
   "chatsync",
+  "pet",
 ];
 const DEBUG = true;
 
@@ -215,8 +216,8 @@ function empfange(target, context, msg) {
     }
   }
   if ( prefix == "@dinoagw_bot" ) {
-    if ( isAdmin || isStreamer || isMod ) {
-      if ( argument.startsWith("ja_bot") ) {
+    if ( argument.startsWith("ja_bot") ) {
+      if ( isAdmin || isStreamer || isMod ) {
         let raum = warteRaum[target];
         if ( raum != undefined ) {
           delete warteRaum[target];
@@ -228,10 +229,10 @@ function empfange(target, context, msg) {
             variables: [ target, raum ]
           });
         }
+      } else {
+        console.log(context);
+        sende( target, "@" + username + " Du bist nicht dazu autorisiert diesen Befehl zu nutzen." );
       }
-    } else {
-      console.log(context);
-      sende( target, "@" + username + " Du bist nicht dazu autorisiert diesen Befehl zu nutzen." );
     }
   }
   if ( prefix == "!invitebot" ) {

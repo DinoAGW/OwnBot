@@ -153,7 +153,7 @@ process.on('message', (message) => {
         process.send({
           type: konstanten.sendeAnChat,
           target: message.target,
-          nachricht: "@" + message.username + " Der Befehl wird wie folgt genutzt: !duell @Zielperson Einsatz (Zielperson = Person mit der du dich duellieren möchtest, Einsatz = wieviel Punkte Du einsetzen möchtest.)"
+          nachricht: "@" + message.username + " Der Befehl wird wie folgt genutzt: !duell @Zielperson Einsatz (Zielperson = Person mit der du dich duellieren möchtest, Einsatz = wieviel Dinos Du einsetzen möchtest.)"
         });
       } else if ( message.argument.slice(0, leerzeichenStelle).toLowerCase()==message.username ) {
         process.send({
