@@ -4,8 +4,10 @@ const prefixe = [
 const DEBUG = true;
 
 const konstanten = require('./Konstanten.js');
+const { Random } = require("random-js");
+const random = new Random();
 
-const Durchlaeufe = 100000000;
+const Durchlaeufe = 10000000;
 
 process.on('message', (message) => {
   if ( DEBUG ) console.log("Kind erhalten: ", message );
@@ -29,13 +31,14 @@ process.on('message', (message) => {
         ergebnisse[i] = 0;
       }
       for ( let i = 0; i < Durchlaeufe*50; i++ ) {
-        ergebnisse[Math.floor(Math.random()*50)]++
+        //ergebnisse[Math.floor(Math.random()*50)]++
+        ergebnisse[random.integer(0,49)]++
       }
       let nachricht = "";
       for ( let i = 0; i < 50; i++ ) {
         let add = "0";
         if (ergebnisse[i]/Durchlaeufe > 1.001) add = "+";
-        if (ergebnisse[i]/Durchlaeufe < 0.999) add += "-";
+        if (ergebnisse[i]/Durchlaeufe < 0.999) add = "-";
         nachricht += add;
       }
       

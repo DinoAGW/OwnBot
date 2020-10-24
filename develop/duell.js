@@ -1,4 +1,7 @@
 const konstanten = require('./Konstanten.js');
+const { Random } = require("random-js");
+const random = new Random();
+
 const myKonstanten = {
   vorababfrage: 0,
   updatefrage: 1,
@@ -69,10 +72,11 @@ process.on('message', (message) => {
         if ( gefunden ) {
           //duell kann stattfinden
           let einsaetze = anfrage.einsatz + duell.einsatz;
-          let random = Math.floor(Math.random()*einsaetze)
+          //let randomzahl = Math.floor(Math.random()*einsaetze);
+          let randomzahl = random.integer(1, einsaetze);
           let gewinner;
           let verlierer;
-          if (random < duell.einsatz) {
+          if (randomzahl <= duell.einsatz) {
             gewinner = duell;
             verlierer = anfrage;
           } else {
@@ -83,7 +87,7 @@ process.on('message', (message) => {
             console.log("Anfrage: ", anfrage);
             console.log("Duell: ", duell);
             console.log("Einsätze zusammen: ", einsaetze);
-            console.log("Zufallszahl: ", random, " random<duell?");
+            console.log("Zufallszahl: ", randomzahl, " random<=duell?");
             console.log("Gewinner: ", gewinner.username);
             console.log("Verlierer: ", verlierer.username);
           }
@@ -100,9 +104,7 @@ process.on('message', (message) => {
           process.send({
             type: konstanten.sendeAnChat,
             target: anfrage.target,
-            nachricht: "Es wurden " + einsaetze + " Dinos ins Rennen geschickt. Dino #1-" + duell.einsatz + " ist von " + duell.username + ", Dino #" + (duell.einsatz+1) + "-" + einsaetze + " ist von " + anfrage.username + ". Gewonnen hat das Dino mit der Nummer " + (random+1) + ". @" + gewinner.username + " gewinnt " + verlierer.einsatz + " Dinos. Sorry @" + verlierer.username + "." 
-            //nachricht: duell.username + " setzt " + duell.einsatz + " Dinoeier, " + anfrage.username + " setzt " + anfrage.einsatz + ". Aber befruchtet ist nur das Ei Nummer " + (random+1) + ". @" + gewinner.username + " gewinnt " + verlierer.einsatz + " Dinos. Sorry @" + verlierer.username + "." 
-            //nachricht: "Ergebnis im Kampf " + anfrage.einsatz + " gegen " + duell.einsatz + ": " + random + ". @" + gewinner.username + " gewinnt " + verlierer.einsatz + " Dinos. Sorry @" + verlierer.username + "."
+            nachricht: "Es wurden " + einsaetze + " Dinos ins Rennen geschickt. Dino #1-" + duell.einsatz + " ist von " + duell.username + ", Dino #" + (duell.einsatz+1) + "-" + einsaetze + " ist von " + anfrage.username + ". Gewonnen hat das Dino mit der Nummer " + randomzahl + ". @" + gewinner.username + " gewinnt " + verlierer.einsatz + " Dinos. Sorry @" + verlierer.username + "." 
           });
         } else {
           //duell merken

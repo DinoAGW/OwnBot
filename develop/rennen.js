@@ -1,4 +1,6 @@
 const konstanten = require('./Konstanten.js');
+const { Random } = require("random-js");
+const random = new Random();
 const myKonstanten = {
 }
 const prefixe = [
@@ -48,12 +50,13 @@ process.on('message', (message) => {
         nachricht: nachricht
       });
       if ( DEBUG ) console.log("Insgesamt: ", nummer );
-      let random = Math.floor(Math.random()*nummer)+1;
+      //let randomzahl = Math.floor(Math.random()*nummer)+1;
+      let randomzahl = random.integer(1, nummer);
       nummer = 0;
       let gewinn = 0;
       let gewinner;
       for (iter in offeneRennen) {
-        if ( nummer < random && random <= nummer + offeneRennen[iter].einsatz ) {
+        if ( nummer < randomzahl && randomzahl <= nummer + offeneRennen[iter].einsatz ) {
           gewinner = offeneRennen[iter];
         } else {
           gewinn += offeneRennen[iter].einsatz;
@@ -73,7 +76,7 @@ process.on('message', (message) => {
       process.send({
         type: konstanten.sendeAnChat,
         target: message.target,
-        nachricht: "Gewonnen hat der Dinosaurier mit der Nummer " + random + ". @" + gewinner.username + " gewinnt " + gewinn + " Dinos. Glückwunsch^^" 
+        nachricht: "Gewonnen hat der Dinosaurier mit der Nummer " + randomzahl + ". @" + gewinner.username + " gewinnt " + gewinn + " Dinos. Glückwunsch^^" 
       });
       offeneRennen = [];
     }
