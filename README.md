@@ -8,23 +8,24 @@ auch bekannt als DinoAGW auf Twitch: https://www.twitch.tv/dinoagw.
 1) Projekt herunterladen
 2) Node.js installieren
 3) $ npm install tmi.js
-4) $ npm install mariadb
+4) npm install random-js
+5) $ npm install mariadb
 Falls noch keine Datenbanksoftware vorhanden:
-5) $ apt install mariadb
-6) unter mariadb 'db1' Datenbank anlegen
-7) Datenbankbenutzer mit Passwort anlegen und Rechte für db1 vergeben (weiß ich nun nicht mehr so genau wie.)
-8) unter mariadb Tabellen aufsetzen:
+6) $ apt install mariadb
+7) unter mariadb 'db1' Datenbank anlegen
+8) Datenbankbenutzer mit Passwort anlegen und Rechte für db1 vergeben (weiß ich nun nicht mehr so genau wie.)
+9) unter mariadb Tabellen aufsetzen:
 * $ CREATE TABLE merke (id INT NOT NULL AUTO_INCREMENT, text VARCHAR (100), PRIMARY KEY (id));
 * $ CREATE TABLE todo (id INT NOT NULL AUTO_INCREMENT, kanal VARCHAR (25), user VARCHAR (25), text VARCHAR (1000), status VARCHAR (100), PRIMARY KEY (id));
 * $ CREATE TABLE punkte (name VARCHAR (25) NOT NULL, punkte INT, extrapoint INT, einsatz INT DEFAULT 0, PRIMARY KEY (name));
 * $ CREATE TABLE sync (kanal VARCHAR (25) NOT NULL, raum INT DEFAULT 0, PRIMARY KEY (kanal));
 * $ CREATE TABLE bot (kanal VARCHAR (25) NOT NULL, raum INT DEFAULT 0, PRIMARY KEY (kanal));
-9) Passwort.js anlegen mit Inhalt:
+10) Passwort.js anlegen mit Inhalt:
 module.exports = {
   <Name des Chatbots>: "oauth:<oauth key das Chatbots>",
   mariadb: "Passwort des Datenbanknutzers"
 }
-10) mit "$ node dinoagw_bot.js" lässt sich der Bot dann starten
+11) mit "$ node dinoagw_bot.js" lässt sich der Bot dann starten
 
 # Funktionalitäten soweit
 
