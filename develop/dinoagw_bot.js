@@ -158,6 +158,7 @@ function empfange(target, context, msg) {
       delete prefixe[argument];
       if ( erlaubteProgramme.includes(argument) ) {
         erzeuge( argument );
+        sende(target, "Gestartet.");
       } else {
         sende(target, "Das darf ich nich starten.");
       }
@@ -171,6 +172,7 @@ function empfange(target, context, msg) {
       });
       delete kinder[iter];
       delete prefixe[argument];
+      sende(target, "Gestoppt.");
     }
     
     if ( befehl == "kinder:" && isAdmin ) {

@@ -37,8 +37,8 @@ process.on('message', (message) => {
       let nachricht = "";
       for ( let i = 0; i < 50; i++ ) {
         let add = "0";
-        if (ergebnisse[i]/Durchlaeufe > 1.001) add = "+";
-        if (ergebnisse[i]/Durchlaeufe < 0.999) add = "-";
+        if (ergebnisse[i] > 1.001*Durchlaeufe) add = "+";
+        if (ergebnisse[i] < 0.999*Durchlaeufe) add = "-";
         nachricht += add;
       }
       
