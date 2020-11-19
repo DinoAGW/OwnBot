@@ -104,7 +104,7 @@ process.on('message', (message) => {
           process.send({
             type: konstanten.sendeAnChat,
             target: anfrage.target,
-            nachricht: "Es wurden " + einsaetze + " Dinos ins Rennen geschickt. Dino #1-" + duell.einsatz + " ist von " + duell.username + ", Dino #" + (duell.einsatz+1) + "-" + einsaetze + " ist von " + anfrage.username + ". Gewonnen hat das Dino mit der Nummer " + randomzahl + ". @" + gewinner.username + " gewinnt " + verlierer.einsatz + " Dinos. Sorry @" + verlierer.username + "." 
+            nachricht: "Es wurden " + einsaetze + " Dinos ins Rennen geschickt. Dino #1-" + duell.einsatz + " ist von " + duell.username + ", Dino #" + (duell.einsatz+1) + "-" + einsaetze + " ist von " + anfrage.username + ". Gewonnen hat der Dino mit der Nummer " + randomzahl + ". @" + gewinner.username + " gewinnt " + verlierer.einsatz + " Dinos. Sorry @" + verlierer.username + "." 
           });
         } else {
           //duell merken
