@@ -2,7 +2,8 @@ const admins = ["dinoagw"];
 const DEBUG = true;
 const ignoreList = [
   "dinoagw_bot",
-  "nightbot"
+  "nightbot",
+  "streamlabs"
 ];
 
 const pwd = require('./Passwort.js');
