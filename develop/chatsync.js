@@ -3,7 +3,9 @@ const DEBUG = true;
 const ignoreList = [
   "dinoagw_bot",
   "nightbot",
-  "streamlabs"
+  "streamlabs",
+  "zimboschatbot",
+  "hunky_bot"
 ];
 
 const pwd = require('./Passwort.js');
