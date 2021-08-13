@@ -10,6 +10,7 @@ const autostartProgramme = [
   "chatsync",
   "pet",
   "randomtest",
+  "pingpong",
 ];
 const DEBUG = true;
 
