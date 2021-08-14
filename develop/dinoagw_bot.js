@@ -150,13 +150,15 @@ function empfange(target, context, msg) {
     }
     
     if ( befehl == "starte:" && isAdmin ) {
-      kinder[argument].send({
-        type: konstanten.befehl,
-        prefix: "!stop",
-        argument: argument
-      });
-      delete kinder[argument];
-      delete prefixe[argument];
+      if ( kinder[argument]!=undefined ) {
+        kinder[argument].send({
+          type: konstanten.befehl,
+          prefix: "!stop",
+          argument: argument
+        });
+        delete kinder[argument];
+        delete prefixe[argument];
+      }
       if ( erlaubteProgramme.includes(argument) ) {
         erzeuge( argument );
         sende(target, "Gestartet.");

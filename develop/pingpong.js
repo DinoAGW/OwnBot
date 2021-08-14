@@ -14,9 +14,9 @@ const myKonstanten = {
   cooldown: 1,
 }
 
-const timeTillTimeout = 90; //90
-const cooldownTime = 300; //300
-const maxEinsatz = 200;
+const timeTillTimeout = 30;
+const cooldownTime = 300;
+const maxEinsatz = 30;
 
 var eineAnfragenID = 0;
 var offeneAnfragen = [];
