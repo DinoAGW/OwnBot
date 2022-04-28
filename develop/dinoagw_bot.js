@@ -11,6 +11,7 @@ const autostartProgramme = [
   "pet",
   "randomtest",
   "pingpong",
+  "say",
 ];
 const DEBUG = true;
 

@@ -2,7 +2,7 @@ const prefixe = [
   "!petdinos",
   "!faden"
 ];
-const DEBUG = true;
+const DEBUG = false;
 
 const konstanten = require('./Konstanten.js');
 
