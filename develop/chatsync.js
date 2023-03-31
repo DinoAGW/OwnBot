@@ -8,7 +8,8 @@ const ignoreList = [
   "hunky_bot",
   "fabinators_bot",
   "streamelements",
-  "wizebot"
+  "wizebot",
+  "soundalerts"
 ];
 
 const pwd = require('./Passwort.js');

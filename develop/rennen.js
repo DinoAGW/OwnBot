@@ -84,7 +84,7 @@ process.on('message', (message) => {
   if ( message.type == konstanten.datenbankAntwort ) {
     if ( DEBUG ) console.log("Datenbankantwort #"+message.anfragenID+" erhalten: ", message );
     let anfrage;
-    for (iter in offeneAnfragen) {
+    for ( iter in offeneAnfragen ) {
       if ( offeneAnfragen[iter].id == message.anfragenID ) {
         anfrage = offeneAnfragen[iter];
         offeneAnfragen.splice(iter, 1);
@@ -121,18 +121,36 @@ process.on('message', (message) => {
             }
           });
         } else {
-          let rennen = {
-            id: eineRennenID,
-            username: anfrage.username,
-            target: anfrage.target,
-            einsatz: anfrage.einsatz
+          //schauen ob er selbst schon dran teilnimmt
+          let nimmtSchonTeil = false;
+          for ( iter in offeneRennen ) {
+            if ( offeneRennen[iter].username == anfrage.username ) {
+              //Einsatz erhöhen
+              nimmtSchonTeil = true;
+              offeneRennen[iter].einsatz = offeneRennen[iter].einsatz  + anfrage.einsatz;
+              process.send({
+                type: konstanten.sendeAnChat,
+                target: anfrage.target,
+                nachricht: "@" + anfrage.username + " erhöht auf " + offeneRennen[iter].einsatz + " Dinos."
+              });
+              break;
+            }
           }
-          offeneRennen.push(rennen);
-          process.send({
-            type: konstanten.sendeAnChat,
-            target: anfrage.target,
-            nachricht: "@" + anfrage.username + " nimmt mit " + anfrage.einsatz + " Dinos am Rennen teil."
-          });
+          if ( nimmtSchonTeil == false ) {
+            //an rennen teilnehmen
+            let rennen = {
+              id: eineRennenID,
+              username: anfrage.username,
+              target: anfrage.target,
+              einsatz: anfrage.einsatz
+            }
+            offeneRennen.push(rennen);
+            process.send({
+              type: konstanten.sendeAnChat,
+              target: anfrage.target,
+              nachricht: "@" + anfrage.username + " nimmt mit " + anfrage.einsatz + " Dinos am Rennen teil."
+            });
+          }
         }
       } else {
         //er kann sich kein Duell leisten
