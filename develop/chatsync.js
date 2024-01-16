@@ -128,7 +128,7 @@ function empfange (target, context, msg) {
       process.send({
         type: konstanten.sendeAnChat,
         target: target,
-        nachricht: "@" + username + " Du bist nicht dazu autorisiert diesen Befehl zu nutzen."
+        nachricht: "@" + username + " Du bist nicht dazu autorisiert diesen Befehl zu nutzen. Es sei denn Du hast garnicht versucht einen Chatsync-Raum zu betreten. Dann ist es nur ein Bug von mir^^"
       });
     }
   }
