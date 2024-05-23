@@ -9,7 +9,8 @@ const ignoreList = [
   "fabinators_bot",
   "streamelements",
   "wizebot",
-  "soundalerts"
+  "soundalerts",
+  "pokemoncommunitygame"
 ];
 
 const pwd = require('./Passwort.js');
