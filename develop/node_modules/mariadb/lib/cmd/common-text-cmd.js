@@ -4,6 +4,7 @@ const ResultSet = require('./resultset');
 const FieldDetail = require('../const/field-detail');
 const FieldType = require('../const/field-type');
 const Long = require('long');
+const moment = require('moment-timezone');
 const QUOTE = 0x27;
 
 class CommonText extends ResultSet {
@@ -12,7 +13,11 @@ class CommonText extends ResultSet {
     this.configAssign(connOpts, cmdOpts);
     this.sql = sql;
     this.initialValues = values;
-    this.getDateQuote = this.opts.tz ? CommonText.getTimezoneDate : CommonText.getLocalDate;
+    this.getDateQuote = this.opts.tz
+      ? this.opts.tz === 'Etc/UTC'
+        ? CommonText.getUtcDate
+        : CommonText.getTimezoneDate
+      : CommonText.getLocalDate;
   }
 
   /**
@@ -28,6 +33,7 @@ class CommonText extends ResultSet {
       case 'boolean':
         out.writeStringAscii(value ? 'true' : 'false');
         break;
+      case 'bigint':
       case 'number':
         out.writeStringAscii('' + value);
         break;
@@ -45,12 +51,16 @@ class CommonText extends ResultSet {
         } else if (Long.isLong(value)) {
           out.writeStringAscii(value.toString());
         } else if (Array.isArray(value)) {
-          out.writeStringAscii('(');
+          if (opts.arrayParenthesis) {
+            out.writeStringAscii('(');
+          }
           for (let i = 0; i < value.length; i++) {
             if (i !== 0) out.writeStringAscii(',');
             this.writeParam(out, value[i], opts, info);
           }
-          out.writeStringAscii(')');
+          if (opts.arrayParenthesis) {
+            out.writeStringAscii(')');
+          }
         } else {
           if (
             value.type != null &&
@@ -267,12 +277,12 @@ class CommonText extends ResultSet {
     column.int = () => packet.readIntLengthEncoded();
     column.long = () =>
       packet.readLongLengthEncoded(
+        opts.supportBigInt,
         opts.supportBigNumbers,
         opts.bigNumberStrings,
         (column.flags & FieldDetail.UNSIGNED) > 0
       );
-    column.decimal = () =>
-      packet.readDecimalLengthEncoded(opts.supportBigNumbers, opts.bigNumberStrings);
+    column.decimal = () => packet.readDecimalLengthEncoded(opts.bigNumberStrings);
     column.date = () => packet.readDateTime(opts);
     column.geometry = () => {
       return column.readGeometry();
@@ -310,13 +320,14 @@ class CommonText extends ResultSet {
         return packet.readFloatLengthCoded();
       case FieldType.LONGLONG:
         return packet.readLongLengthEncoded(
+          opts.supportBigInt,
           opts.supportBigNumbers,
           opts.bigNumberStrings,
           (column.flags & FieldDetail.UNSIGNED) > 0
         );
       case FieldType.DECIMAL:
       case FieldType.NEWDECIMAL:
-        return packet.readDecimalLengthEncoded(opts.supportBigNumbers, opts.bigNumberStrings);
+        return packet.readDecimalLengthEncoded(opts.bigNumberStrings);
       case FieldType.DATE:
         if (opts.dateStrings) {
           return packet.readAsciiStringLengthEncoded();
@@ -392,13 +403,25 @@ function getLocalDate(date, opts) {
   return getDatePartQuote(year, mon, day, hour, min, sec, ms);
 }
 
+function getUtcDate(date, opts) {
+  const year = date.getUTCFullYear();
+  const mon = date.getUTCMonth() + 1;
+  const day = date.getUTCDate();
+  const hour = date.getUTCHours();
+  const min = date.getUTCMinutes();
+  const sec = date.getUTCSeconds();
+  const ms = date.getUTCMilliseconds();
+  return getDatePartQuote(year, mon, day, hour, min, sec, ms);
+}
+
 function getTimezoneDate(date, opts) {
   if (date.getMilliseconds() != 0) {
-    return opts.tz(date).format("'YYYY-MM-DD HH:mm:ss.SSS'");
+    return moment.tz(date, opts.tz).format("'YYYY-MM-DD HH:mm:ss.SSS'");
   }
-  return opts.tz(date).format("'YYYY-MM-DD HH:mm:ss'");
+  return moment.tz(date, opts.tz).format("'YYYY-MM-DD HH:mm:ss'");
 }
 
 module.exports = CommonText;
 module.exports.getTimezoneDate = getTimezoneDate;
+module.exports.getUtcDate = getUtcDate;
 module.exports.getLocalDate = getLocalDate;
